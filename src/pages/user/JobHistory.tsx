@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { bookingsAPI } from '../../services/api'
-import { Star } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
 export default function JobHistory() {

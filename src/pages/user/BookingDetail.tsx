@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { bookingsAPI, ratingsAPI } from '../../services/api'
 import { connectSocket, getSocket } from '../../services/socket'
-import { MessageCircle, Star, CheckCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
 export default function BookingDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [booking, setBooking] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')

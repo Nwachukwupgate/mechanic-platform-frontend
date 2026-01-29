@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { vehiclesAPI } from '../../services/api'
-import { Plus, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
 export default function UserVehicles() {
