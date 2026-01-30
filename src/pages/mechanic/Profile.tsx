@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { mechanicsAPI } from '../../services/api'
+import { reverseGeocode } from '../../services/geocoding'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Upload, FileText, X, MapPin, User } from 'lucide-react'
 
@@ -34,6 +35,8 @@ export default function MechanicProfile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [workshopLocation, setWorkshopLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [workshopLocationAddress, setWorkshopLocationAddress] = useState<string | null>(null)
+  const [workshopAddressLoading, setWorkshopAddressLoading] = useState(false)
   const [workshopLocationLoading, setWorkshopLocationLoading] = useState(false)
   const [workshopLocationError, setWorkshopLocationError] = useState<string | null>(null)
   const workshopLocationRef = useRef<{ lat: number; lng: number } | null>(null)
@@ -77,8 +80,14 @@ export default function MechanicProfile() {
             const loc = { lat: profileData.latitude, lng: profileData.longitude }
             setWorkshopLocation(loc)
             workshopLocationRef.current = loc
+            setWorkshopAddressLoading(true)
+            reverseGeocode(loc.lat, loc.lng)
+              .then(setWorkshopLocationAddress)
+              .catch(() => setWorkshopLocationAddress(null))
+              .finally(() => setWorkshopAddressLoading(false))
           } else {
             setWorkshopLocation(null)
+            setWorkshopLocationAddress(null)
             workshopLocationRef.current = null
           }
         }
@@ -169,6 +178,16 @@ export default function MechanicProfile() {
         setWorkshopLocation(loc)
         setWorkshopLocationLoading(false)
         setWorkshopLocationError(null)
+        setWorkshopAddressLoading(true)
+        reverseGeocode(loc.lat, loc.lng)
+          .then((addr) => {
+            setWorkshopLocationAddress(addr)
+            setWorkshopAddressLoading(false)
+          })
+          .catch(() => {
+            setWorkshopLocationAddress(null)
+            setWorkshopAddressLoading(false)
+          })
         toast.success('Workshop location set — you’ll appear in nearby search')
       },
       (error: GeolocationPositionError) => {
@@ -421,7 +440,9 @@ export default function MechanicProfile() {
               </button>
               {workshopLocation && !workshopLocationLoading && (
                 <span className="text-sm text-green-700">
-                  ✓ Saved ({workshopLocation.lat.toFixed(4)}, {workshopLocation.lng.toFixed(4)})
+                  ✓ {workshopAddressLoading
+                    ? 'Getting address…'
+                    : workshopLocationAddress || 'Location set'}
                 </span>
               )}
             </div>

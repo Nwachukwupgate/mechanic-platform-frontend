@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { vehiclesAPI, faultsAPI, bookingsAPI } from '../../services/api'
+import { reverseGeocode } from '../../services/geocoding'
 import { MapPin, Star, CheckCircle2, User } from 'lucide-react'
 
 export default function FindMechanics() {
@@ -11,6 +12,7 @@ export default function FindMechanics() {
   const [selectedFault, setSelectedFault] = useState('')
   const [mechanics, setMechanics] = useState<any[]>([])
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [userLocationAddress, setUserLocationAddress] = useState<string | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const navigate = useNavigate()
@@ -61,13 +63,18 @@ export default function FindMechanics() {
       maximumAge: 10 * 60 * 1000, // Accept cached position up to 10 minutes
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        })
+      async (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        setUserLocation({ lat, lng })
         setLocationLoading(false)
         setLocationError(null)
+        try {
+          const address = await reverseGeocode(lat, lng)
+          setUserLocationAddress(address)
+        } catch {
+          setUserLocationAddress(null)
+        }
       },
       (error: GeolocationPositionError) => {
         // kCLErrorLocationUnknown → POSITION_UNAVAILABLE; often temporary – retry once
@@ -196,7 +203,7 @@ export default function FindMechanics() {
             </button>
             {userLocation && !locationLoading && (
               <span className="text-sm text-green-700">
-                ✓ Location set ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})
+                ✓ {userLocationAddress || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
               </span>
             )}
           </div>
@@ -253,9 +260,13 @@ export default function FindMechanics() {
               <span className="text-sm">4.5</span>
             </div>
             <div className="flex items-center space-x-1 mb-4">
-              <MapPin className="h-4 w-4 text-gray-500" />
+              <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
               <span className="text-sm text-gray-600">
-                {mechanic.address}, {mechanic.city}
+                {mechanic.workshopAddress ||
+                  [mechanic.address, mechanic.city].filter(Boolean).join(', ') ||
+                  (mechanic.latitude != null && mechanic.longitude != null
+                    ? `${mechanic.latitude.toFixed(4)}, ${mechanic.longitude.toFixed(4)}`
+                    : 'Address not set')}
               </span>
             </div>
             <div className="mb-4">
