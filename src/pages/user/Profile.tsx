@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { usersAPI } from '../../services/api'
+import { usersAPI, getApiErrorMessage } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
 export default function UserProfile() {
@@ -27,7 +27,7 @@ export default function UserProfile() {
       toast.success('Profile updated successfully')
       reset(data)
     } catch (error) {
-      toast.error('Failed to update profile')
+      toast.error(getApiErrorMessage(error, 'Failed to update profile'))
     }
   }
 

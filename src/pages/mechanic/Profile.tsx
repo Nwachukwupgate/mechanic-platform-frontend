@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { mechanicsAPI } from '../../services/api'
+import { mechanicsAPI, getApiErrorMessage, isPropertyNotAllowedError } from '../../services/api'
 import { reverseGeocode } from '../../services/geocoding'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { MECHANIC_VEHICLE_TYPES, EXPERTISE_OPTIONS, CAR_BRANDS } from '../../constants/vehicles'
@@ -125,8 +125,8 @@ export default function MechanicProfile() {
     try {
       const res = await mechanicsAPI.uploadCertificate(file)
       setCertificateUrl(res.data.certificateUrl)
-    } catch {
-      toast.error('Failed to upload certificate')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to upload certificate'))
     } finally {
       setCertificateUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -154,8 +154,8 @@ export default function MechanicProfile() {
       const res = await mechanicsAPI.uploadAvatar(file)
       setAvatarUrl(res.data.avatarUrl)
       toast.success('Photo updated')
-    } catch {
-      toast.error('Failed to upload photo')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to upload photo'))
     } finally {
       setAvatarUploading(false)
       if (avatarInputRef.current) avatarInputRef.current.value = ''
@@ -238,8 +238,19 @@ export default function MechanicProfile() {
         certificateUrl: certificateUrl ?? null,
         avatar: avatarUrl ?? null,
       }
-      await mechanicsAPI.updateProfile(payload)
-      toast.success('Profile updated successfully')
+      try {
+        await mechanicsAPI.updateProfile(payload)
+        toast.success('Profile updated successfully')
+      } catch (firstError) {
+        // Production backend may not support "brands" yet — retry without it so the rest of the profile saves
+        if (isPropertyNotAllowedError(firstError, 'brands')) {
+          const { brands: _b, ...payloadWithoutBrands } = payload
+          await mechanicsAPI.updateProfile(payloadWithoutBrands)
+          toast.success('Profile updated. Car brands could not be saved (server does not support this yet).')
+        } else {
+          throw firstError
+        }
+      }
       reset({
         phone: data.phone,
         address: data.address,
@@ -258,7 +269,7 @@ export default function MechanicProfile() {
         brands: payload.brands ?? [],
       })
     } catch (error) {
-      toast.error('Failed to update profile')
+      toast.error(getApiErrorMessage(error, 'Failed to update profile'))
     }
   }
 
@@ -268,7 +279,7 @@ export default function MechanicProfile() {
       setAvailability(!availability)
       toast.success(availability ? 'Marked unavailable' : 'Marked available')
     } catch (error) {
-      toast.error('Failed to update availability')
+      toast.error(getApiErrorMessage(error, 'Failed to update availability'))
     }
   }
 

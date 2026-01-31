@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { vehiclesAPI } from '../../services/api'
+import { vehiclesAPI, getApiErrorMessage } from '../../services/api'
 import { VEHICLE_TYPES, CAR_BRANDS } from '../../constants/vehicles'
 import { Plus, Trash2 } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -48,7 +48,7 @@ export default function UserVehicles() {
       })
       loadVehicles()
     } catch (error) {
-      toast.error('Failed to add vehicle')
+      toast.error(getApiErrorMessage(error, 'Failed to add vehicle'))
     }
   }
 
@@ -59,7 +59,7 @@ export default function UserVehicles() {
       toast.success('Vehicle removed')
       loadVehicles()
     } catch (error) {
-      toast.error('Failed to delete vehicle')
+      toast.error(getApiErrorMessage(error, 'Failed to delete vehicle'))
     }
   }
 

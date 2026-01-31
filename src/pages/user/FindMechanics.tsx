@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { vehiclesAPI, faultsAPI, bookingsAPI } from '../../services/api'
+import { vehiclesAPI, faultsAPI, bookingsAPI, getApiErrorMessage } from '../../services/api'
 import { reverseGeocode } from '../../services/geocoding'
 import { MechanicsMap } from '../../components/MechanicsMap'
 import { MapPin, Star, CheckCircle2, User, List, Map } from 'lucide-react'
@@ -124,7 +124,7 @@ export default function FindMechanics() {
       )
       setMechanics(res.data)
     } catch (error) {
-      toast.error('Failed to find mechanics')
+      toast.error(getApiErrorMessage(error, 'Failed to find mechanics'))
     }
   }
 
@@ -145,7 +145,7 @@ export default function FindMechanics() {
       toast.success('Booking requested successfully')
       navigate(`/user/bookings/${res.data.id}`)
     } catch (error) {
-      toast.error('Failed to create booking')
+      toast.error(getApiErrorMessage(error, 'Failed to create booking'))
     }
   }
 

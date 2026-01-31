@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { bookingsAPI, ratingsAPI } from '../../services/api'
+import { bookingsAPI, ratingsAPI, getApiErrorMessage } from '../../services/api'
 import { connectSocket, getSocket } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
@@ -47,8 +47,8 @@ export default function BookingDetail() {
       const res = await bookingsAPI.getById(id!)
       setBooking(res.data)
       setMessages(res.data.messages || [])
-    } catch {
-      toast.error('Failed to load booking')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load booking'))
     }
   }
 
@@ -79,8 +79,8 @@ export default function BookingDetail() {
       setRating(0)
       setComment('')
       loadBooking()
-    } catch {
-      toast.error('Failed to submit rating')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit rating'))
     }
   }
 

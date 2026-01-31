@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { bookingsAPI } from '../../services/api'
+import { bookingsAPI, getApiErrorMessage } from '../../services/api'
 import { connectSocket, getSocket } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
@@ -47,8 +47,8 @@ export default function MechanicBookingDetail() {
       setBooking(res.data)
       setMessages(res.data.messages || [])
       setStatus(res.data.status)
-    } catch {
-      toast.error('Failed to load booking')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load booking'))
     }
   }
 
@@ -81,8 +81,8 @@ export default function MechanicBookingDetail() {
       setStatus(newStatus)
       toast.success('Status updated')
       loadBooking()
-    } catch {
-      toast.error('Failed to update status')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to update status'))
     }
   }
 
@@ -93,8 +93,8 @@ export default function MechanicBookingDetail() {
       toast.success('Cost updated')
       setCost('')
       loadBooking()
-    } catch {
-      toast.error('Failed to update cost')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to update cost'))
     }
   }
 
