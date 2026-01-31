@@ -228,13 +228,13 @@ export default function FindMechanics() {
 
       {mechanics.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">View:</span>
+          <span className="text-sm font-medium text-slate-700">View:</span>
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
               viewMode === 'list'
-                ? 'bg-primary-600 text-white'
+                ? 'bg-primary-600 text-white ring-2 ring-primary-200 ring-offset-2'
                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -244,10 +244,10 @@ export default function FindMechanics() {
           <button
             type="button"
             onClick={() => setViewMode('map')}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
               viewMode === 'map'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-primary-600 text-white ring-2 ring-primary-200 ring-offset-2'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
             <Map className="h-4 w-4" />

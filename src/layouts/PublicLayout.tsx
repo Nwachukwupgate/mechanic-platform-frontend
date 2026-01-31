@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Wrench, Menu, X } from 'lucide-react'
 
 export default function PublicLayout() {
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   const handleLogout = () => {
     logout()
@@ -36,13 +39,17 @@ export default function PublicLayout() {
             <div className="hidden md:flex items-center gap-2">
               <Link
                 to="/for-users"
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  isActive('/for-users') ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-200' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 For Users
               </Link>
               <Link
                 to="/for-mechanics"
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  isActive('/for-mechanics') ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-200' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 For Mechanics
               </Link>
@@ -97,14 +104,18 @@ export default function PublicLayout() {
               <div className="px-2 space-y-0.5">
                 <Link
                   to="/for-users"
-                  className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
+                  className={`block px-4 py-3 rounded-xl font-medium ${
+                    isActive('/for-users') ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   For Users
                 </Link>
                 <Link
                   to="/for-mechanics"
-                  className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
+                  className={`block px-4 py-3 rounded-xl font-medium ${
+                    isActive('/for-mechanics') ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   For Mechanics

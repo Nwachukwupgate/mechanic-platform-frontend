@@ -44,7 +44,7 @@ export default function MechanicLayout() {
                       to={item.path}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                         active
-                          ? 'bg-primary-50 text-primary-700'
+                          ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-200'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
@@ -75,11 +75,13 @@ export default function MechanicLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-2 ${
-                  active ? 'text-primary-600' : 'text-slate-500'
+                className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-2 rounded-lg transition-colors ${
+                  active
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                <Icon className={`h-6 w-6 shrink-0 ${active ? 'text-primary-600' : ''}`} />
+                <Icon className="h-6 w-6 shrink-0" />
                 <span className="text-[10px] font-medium truncate max-w-full px-0.5">{item.label}</span>
               </Link>
             )
