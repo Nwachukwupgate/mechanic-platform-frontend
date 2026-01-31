@@ -15,88 +15,96 @@ export default function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <nav className="bg-white shadow-sm border-b relative">
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <nav className="bg-white shadow-card border-b border-slate-100 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2" onClick={() => setMobileMenuOpen(false)}>
-                <Wrench className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">Mechanic Platform</span>
+              <Link
+                to="/"
+                className="flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
+                  <Wrench className="h-5 w-5" />
+                </div>
+                <span className="text-lg font-semibold text-slate-800">Mechanic Platform</span>
               </Link>
             </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link to="/for-users" className="text-gray-700 hover:text-blue-600">
+
+            {/* Desktop */}
+            <div className="hidden md:flex items-center gap-2">
+              <Link
+                to="/for-users"
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+              >
                 For Users
               </Link>
-              <Link to="/for-mechanics" className="text-gray-700 hover:text-blue-600">
+              <Link
+                to="/for-mechanics"
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+              >
                 For Mechanics
               </Link>
               {isAuthenticated ? (
                 <>
                   <Link
                     to={user?.role === 'USER' ? '/user' : '/mechanic'}
-                    className="text-gray-700 hover:text-blue-600"
+                    className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100"
                   >
                     Dashboard
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
                   >
-                    Logout
+                    Log out
                   </button>
                 </>
               ) : (
                 <>
                   <Link
                     to="/login"
-                    className="text-gray-700 hover:text-blue-600"
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
                   >
-                    Login
+                    Log in
                   </Link>
                   <Link
                     to="/register"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-xl hover:bg-primary-700 shadow-soft"
                   >
-                    Sign Up
+                    Sign up
                   </Link>
                 </>
               )}
             </div>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile hamburger */}
             <div className="md:hidden flex items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-gray-700 hover:text-blue-600 focus:outline-none"
+                className="p-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                 aria-label="Toggle menu"
               >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile Menu */}
+          {/* Mobile menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden border-t bg-white">
-              <div className="px-2 pt-2 pb-3 space-y-1">
+            <div className="md:hidden border-t border-slate-100 bg-white py-3">
+              <div className="px-2 space-y-0.5">
                 <Link
                   to="/for-users"
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-md"
+                  className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   For Users
                 </Link>
                 <Link
                   to="/for-mechanics"
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-md"
+                  className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   For Mechanics
@@ -105,33 +113,33 @@ export default function PublicLayout() {
                   <>
                     <Link
                       to={user?.role === 'USER' ? '/user' : '/mechanic'}
-                      className="block px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-md"
+                      className="block px-4 py-3 text-primary-600 bg-primary-50 rounded-xl font-medium"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Dashboard
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-md"
+                      className="w-full text-left px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
                     >
-                      Logout
+                      Log out
                     </button>
                   </>
                 ) : (
                   <>
                     <Link
                       to="/login"
-                      className="block px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-md"
+                      className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl font-medium"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Login
+                      Log in
                     </Link>
                     <Link
                       to="/register"
-                      className="block px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center"
+                      className="block px-4 py-3 text-center text-white bg-primary-600 rounded-xl font-medium mx-2 mt-2"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Sign Up
+                      Sign up
                     </Link>
                   </>
                 )}
@@ -143,9 +151,19 @@ export default function PublicLayout() {
       <main className="flex-grow">
         <Outlet />
       </main>
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2026 Mechanic Platform. All rights reserved.</p>
+      <footer className="bg-slate-800 text-slate-200 py-10 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white">
+                <Wrench className="h-4 w-4" />
+              </div>
+              <span className="font-semibold text-white">Mechanic Platform</span>
+            </div>
+            <p className="text-sm text-slate-400">
+              &copy; {new Date().getFullYear()} Mechanic Platform. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

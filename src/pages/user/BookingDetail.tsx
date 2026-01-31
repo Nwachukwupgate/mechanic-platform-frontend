@@ -1,26 +1,35 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { bookingsAPI, ratingsAPI } from '../../services/api'
 import { connectSocket, getSocket } from '../../services/socket'
-import { MessageCircle } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
+import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { ArrowLeft, MapPin, Star, Wrench, X } from 'lucide-react'
+
+const statusStyles: Record<string, string> = {
+  REQUESTED: 'bg-amber-100 text-amber-800',
+  ACCEPTED: 'bg-blue-100 text-blue-800',
+  IN_PROGRESS: 'bg-violet-100 text-violet-800',
+  DONE: 'bg-emerald-100 text-emerald-800',
+  PAID: 'bg-slate-100 text-slate-800',
+  DELIVERED: 'bg-emerald-100 text-emerald-800',
+}
 
 export default function BookingDetail() {
   const { id } = useParams()
+  const currentUser = useAuthStore((s) => s.user)
   const [booking, setBooking] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
-  const [newMessage, setNewMessage] = useState('')
+  const [showRating, setShowRating] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
-  const [showRating, setShowRating] = useState(false)
 
   useEffect(() => {
     if (!id) return
-
     loadBooking()
     connectSocket()
-
     const socket = getSocket()
     if (socket) {
       socket.emit('join_booking', id)
@@ -28,11 +37,8 @@ export default function BookingDetail() {
         setMessages((prev) => [...prev, message])
       })
     }
-
     return () => {
-      if (socket) {
-        socket.off('new_message')
-      }
+      if (socket) socket.off('new_message')
     }
   }, [id])
 
@@ -41,29 +47,26 @@ export default function BookingDetail() {
       const res = await bookingsAPI.getById(id!)
       setBooking(res.data)
       setMessages(res.data.messages || [])
-    } catch (error) {
+    } catch {
       toast.error('Failed to load booking')
     }
   }
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !booking) return
-
+  const sendMessage = (content: string) => {
+    if (!booking) return
     const socket = getSocket()
     if (socket) {
       socket.emit('send_message', {
         bookingId: booking.id,
-        receiverId: booking.mechanic?.id || booking.user.id,
+        receiverId: booking.mechanic?.id || booking.user?.id,
         receiverType: booking.mechanic ? 'MECHANIC' : 'USER',
-        content: newMessage,
+        content,
       })
-      setNewMessage('')
     }
   }
 
   const submitRating = async () => {
-    if (!rating || !booking) return
-
+    if (!rating || !booking?.mechanic) return
     try {
       await ratingsAPI.create({
         bookingId: booking.id,
@@ -71,84 +74,132 @@ export default function BookingDetail() {
         rating,
         comment,
       })
-      toast.success('Rating submitted successfully')
+      toast.success('Rating submitted')
       setShowRating(false)
       setRating(0)
       setComment('')
       loadBooking()
-    } catch (error) {
+    } catch {
       toast.error('Failed to submit rating')
     }
   }
 
   if (!booking) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[320px]">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Booking Details</h1>
+  const otherPartyName = booking.mechanic?.companyName ?? 'Mechanic'
+  const hasLocation = booking.locationLat != null && booking.locationLng != null
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
+  return (
+    <div className="max-w-4xl mx-auto">
+      <Link
+        to="/user"
+        className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 text-sm font-medium"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to dashboard
+      </Link>
+
+      {/* Summary card */}
+      <div className="card p-5 mb-6">
+        <div className="flex flex-wrap justify-between items-start gap-4">
           <div>
-            <h2 className="text-xl font-semibold">
+            <h1 className="text-xl font-semibold text-slate-800">
               {booking.vehicle?.brand} {booking.vehicle?.model}
-            </h2>
-            <p className="text-gray-600">{booking.fault?.name}</p>
+            </h1>
+            <p className="text-slate-600 mt-0.5">{booking.fault?.name}</p>
+            {booking.mechanic && (
+              <div className="flex items-center gap-2 mt-3">
+                <Wrench className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-medium text-slate-700">
+                  {booking.mechanic.companyName} · {booking.mechanic.ownerFullName}
+                </span>
+              </div>
+            )}
           </div>
           <span
-            className={`px-3 py-1 rounded text-sm ${
-              booking.status === 'REQUESTED'
-                ? 'bg-yellow-100 text-yellow-800'
-                : booking.status === 'ACCEPTED'
-                ? 'bg-blue-100 text-blue-800'
-                : booking.status === 'IN_PROGRESS'
-                ? 'bg-purple-100 text-purple-800'
-                : 'bg-green-100 text-green-800'
+            className={`px-3 py-1.5 rounded-xl text-sm font-medium ${
+              statusStyles[booking.status] ?? 'bg-slate-100 text-slate-700'
             }`}
           >
-            {booking.status}
+            {booking.status.replace('_', ' ')}
           </span>
         </div>
-
-        {booking.mechanic && (
-          <div className="mb-4">
-            <p className="font-medium">Mechanic: {booking.mechanic.companyName}</p>
-            <p className="text-sm text-gray-600">{booking.mechanic.ownerFullName}</p>
-          </div>
+        {booking.estimatedCost != null && (
+          <p className="mt-3 text-slate-700 font-medium">
+            Estimated cost: ${Number(booking.estimatedCost).toLocaleString()}
+          </p>
         )}
-
-        {booking.description && (
-          <p className="text-gray-700 mb-4">{booking.description}</p>
-        )}
-
-        {booking.estimatedCost && (
-          <p className="font-semibold mb-4">Estimated Cost: ${booking.estimatedCost}</p>
-        )}
-
         {booking.status === 'DONE' && !showRating && (
           <button
             onClick={() => setShowRating(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 text-sm font-medium"
           >
-            Rate Mechanic
+            <Star className="h-4 w-4" />
+            Rate mechanic
           </button>
         )}
+      </div>
 
-        {showRating && (
-          <div className="mt-4 p-4 bg-gray-50 rounded">
-            <h3 className="font-semibold mb-2">Rate this mechanic</h3>
-            <div className="flex space-x-1 mb-2">
+      {/* Job location — link to map */}
+      {hasLocation && (
+        <div className="card p-4 mb-6">
+          <div className="flex items-center gap-2 text-slate-700 font-medium mb-2">
+            <MapPin className="h-4 w-4 text-primary-600" />
+            Job location
+          </div>
+          {booking.locationAddress && (
+            <p className="text-sm text-slate-600 mb-2">{booking.locationAddress}</p>
+          )}
+          <a
+            href={`https://www.google.com/maps?q=${booking.locationLat},${booking.locationLng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            <MapPin className="h-4 w-4" />
+            View on map
+          </a>
+        </div>
+      )}
+
+      {/* Chat — one page, chat-first */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-slate-800 mb-3">Conversation</h2>
+        <BookingChat
+          messages={messages}
+          currentUserId={currentUser?.id ?? ''}
+          otherPartyName={otherPartyName}
+          onSend={sendMessage}
+          placeholder="Type a message..."
+        />
+      </div>
+
+      {/* Rating modal */}
+      {showRating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="card p-6 max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-slate-800">Rate this mechanic</h3>
+              <button
+                onClick={() => setShowRating(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex gap-1 mb-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
+                  type="button"
                   onClick={() => setRating(star)}
-                  className={`text-2xl ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                  className={`p-1 text-2xl ${star <= rating ? 'text-amber-500' : 'text-slate-300'}`}
                 >
                   ★
                 </button>
@@ -158,62 +209,26 @@ export default function BookingDetail() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Add a comment (optional)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-2"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl mb-4 text-sm"
               rows={3}
             />
-            <div className="flex space-x-2">
+            <div className="flex gap-2">
               <button
                 onClick={submitRating}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="btn-primary flex-1"
               >
-                Submit Rating
+                Submit
               </button>
               <button
                 onClick={() => setShowRating(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                className="px-4 py-2.5 border border-slate-200 rounded-xl text-slate-700 font-medium hover:bg-slate-50"
               >
                 Cancel
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-          <MessageCircle className="h-5 w-5" />
-          <span>Chat</span>
-        </h2>
-        <div className="border rounded-lg p-4 mb-4 h-64 overflow-y-auto">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`mb-2 ${msg.senderId === booking.userId ? 'text-right' : ''}`}
-            >
-              <p className="text-sm text-gray-600">{msg.content}</p>
-              <p className="text-xs text-gray-400">
-                {new Date(msg.createdAt).toLocaleString()}
-              </p>
-            </div>
-          ))}
         </div>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Type a message..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-          />
-          <button
-            onClick={sendMessage}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Send
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

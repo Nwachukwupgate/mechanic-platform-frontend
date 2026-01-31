@@ -4,10 +4,8 @@ import toast from 'react-hot-toast'
 import { mechanicsAPI } from '../../services/api'
 import { reverseGeocode } from '../../services/geocoding'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { MECHANIC_VEHICLE_TYPES, EXPERTISE_OPTIONS, CAR_BRANDS } from '../../constants/vehicles'
 import { Upload, FileText, X, MapPin, User } from 'lucide-react'
-
-const VEHICLE_TYPES = ['SEDAN', 'SUV', 'TRUCK', 'BIKE'] as const
-const EXPERTISE_OPTIONS = ['ENGINE', 'BRAKES', 'ELECTRICAL', 'AC', 'TRANSMISSION', 'OTHER'] as const
 
 type ProfileForm = {
   phone: string
@@ -24,6 +22,7 @@ type ProfileForm = {
   guarantorAddress: string
   vehicleTypes: string[]
   expertise: string[]
+  brands: string[]
 }
 
 export default function MechanicProfile() {
@@ -46,11 +45,13 @@ export default function MechanicProfile() {
     defaultValues: {
       vehicleTypes: [],
       expertise: [],
+      brands: [],
     },
   })
 
   const watchedVehicleTypes = watch('vehicleTypes') || []
   const watchedExpertise = watch('expertise') || []
+  const watchedBrands = watch('brands') || []
 
   useEffect(() => {
     mechanicsAPI
@@ -74,6 +75,7 @@ export default function MechanicProfile() {
           setValue('guarantorAddress', profileData.guarantorAddress || '')
           setValue('vehicleTypes', Array.isArray(profileData.vehicleTypes) ? profileData.vehicleTypes : [])
           setValue('expertise', Array.isArray(profileData.expertise) ? profileData.expertise : [])
+          setValue('brands', Array.isArray(profileData.brands) ? profileData.brands : [])
           setCertificateUrl(profileData.certificateUrl || null)
           setAvailability(profileData.availability ?? true)
           if (profileData.latitude != null && profileData.longitude != null) {
@@ -96,8 +98,13 @@ export default function MechanicProfile() {
       .catch(() => setLoading(false))
   }, [setValue])
 
-  const toggleArrayValue = (field: 'vehicleTypes' | 'expertise', value: string) => {
-    const current = field === 'vehicleTypes' ? watchedVehicleTypes : watchedExpertise
+  const toggleArrayValue = (field: 'vehicleTypes' | 'expertise' | 'brands', value: string) => {
+    const current =
+      field === 'vehicleTypes'
+        ? watchedVehicleTypes
+        : field === 'expertise'
+          ? watchedExpertise
+          : watchedBrands
     const next = current.includes(value) ? current.filter((x) => x !== value) : [...current, value]
     setValue(field, next)
   }
@@ -227,6 +234,7 @@ export default function MechanicProfile() {
         guarantorAddress: data.guarantorAddress,
         vehicleTypes: data.vehicleTypes.length ? data.vehicleTypes : watchedVehicleTypes,
         expertise: data.expertise.length ? data.expertise : watchedExpertise,
+        brands: data.brands?.length ? data.brands : watchedBrands,
         certificateUrl: certificateUrl ?? null,
         avatar: avatarUrl ?? null,
       }
@@ -247,6 +255,7 @@ export default function MechanicProfile() {
         guarantorAddress: data.guarantorAddress,
         vehicleTypes: payload.vehicleTypes,
         expertise: payload.expertise,
+        brands: payload.brands ?? [],
       })
     } catch (error) {
       toast.error('Failed to update profile')
@@ -402,7 +411,7 @@ export default function MechanicProfile() {
               Type of vehicle(s) you work on <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
-              {VEHICLE_TYPES.map((v) => (
+              {MECHANIC_VEHICLE_TYPES.map((v) => (
                 <label key={v} className="inline-flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -411,6 +420,25 @@ export default function MechanicProfile() {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm">{v}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Car brands you work on <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-gray-500 mb-2">Select the brands you can service (e.g. Toyota, Honda). Helps match you to the right requests.</p>
+            <div className="flex flex-wrap gap-2">
+              {CAR_BRANDS.map((b) => (
+                <label key={b} className="inline-flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchedBrands.includes(b)}
+                    onChange={() => toggleArrayValue('brands', b)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">{b}</span>
                 </label>
               ))}
             </div>
@@ -543,8 +571,9 @@ export default function MechanicProfile() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expertise (AC, Electrical, etc.) <span className="text-red-500">*</span>
+              Expertise (AC, Electrical, Mechanical, etc.) <span className="text-red-500">*</span>
             </label>
+            <p className="text-xs text-gray-500 mb-2">Mechanical covers engine, brakes and transmission.</p>
             <div className="flex flex-wrap gap-2">
               {EXPERTISE_OPTIONS.map((e) => (
                 <label key={e} className="inline-flex items-center gap-1.5 cursor-pointer">

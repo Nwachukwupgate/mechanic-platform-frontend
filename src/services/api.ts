@@ -138,9 +138,15 @@ export const bookingsAPI = {
   create: (data: any) => api.post('/bookings', data),
   getAll: () => api.get('/bookings'),
   getById: (id: string) => api.get(`/bookings/${id}`),
-  findNearbyMechanics: (lat: number, lng: number, faultCategory: string, radius?: number) =>
+  findNearbyMechanics: (
+    lat: number,
+    lng: number,
+    faultCategory: string,
+    radius?: number,
+    vehicleId?: string
+  ) =>
     api.get('/bookings/nearby-mechanics', {
-      params: { lat, lng, faultCategory, radius },
+      params: { lat, lng, faultCategory, radius, vehicleId },
     }),
   acceptBooking: (id: string) => api.put(`/bookings/${id}/accept`),
   updateStatus: (id: string, status: string) =>

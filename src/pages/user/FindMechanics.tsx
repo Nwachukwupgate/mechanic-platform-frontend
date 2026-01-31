@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { vehiclesAPI, faultsAPI, bookingsAPI } from '../../services/api'
 import { reverseGeocode } from '../../services/geocoding'
-import { MapPin, Star, CheckCircle2, User } from 'lucide-react'
+import { MechanicsMap } from '../../components/MechanicsMap'
+import { MapPin, Star, CheckCircle2, User, List, Map } from 'lucide-react'
 
 export default function FindMechanics() {
   const [vehicles, setVehicles] = useState<any[]>([])
@@ -15,6 +16,8 @@ export default function FindMechanics() {
   const [userLocationAddress, setUserLocationAddress] = useState<string | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [selectedMechanicIdOnMap, setSelectedMechanicIdOnMap] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -116,7 +119,8 @@ export default function FindMechanics() {
         userLocation.lat,
         userLocation.lng,
         fault.category,
-        10
+        10,
+        selectedVehicle
       )
       setMechanics(res.data)
     } catch (error) {
@@ -147,9 +151,10 @@ export default function FindMechanics() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Find Mechanics</h1>
+      <h1 className="text-3xl font-bold text-slate-800 mb-2">Find Mechanics</h1>
+      <p className="text-slate-600 mb-6">Select your vehicle and issue, then search for nearby verified mechanics.</p>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="card p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Select Vehicle & Issue</h2>
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -221,9 +226,58 @@ export default function FindMechanics() {
         </button>
       </div>
 
+      {mechanics.length > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">View:</span>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium ${
+              viewMode === 'list'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <List className="h-4 w-4" />
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('map')}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium ${
+              viewMode === 'map'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Map className="h-4 w-4" />
+            Map
+          </button>
+        </div>
+      )}
+
+      {viewMode === 'map' && mechanics.length > 0 && (
+        <div className="mb-8">
+          <MechanicsMap
+            userLocation={userLocation}
+            mechanics={mechanics}
+            selectedMechanicId={selectedMechanicIdOnMap}
+            onSelectMechanic={setSelectedMechanicIdOnMap}
+            onCloseInfoWindow={() => setSelectedMechanicIdOnMap(null)}
+            onRequestService={createBooking}
+          />
+        </div>
+      )}
+
+      {viewMode === 'list' && (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mechanics.map((mechanic) => (
-          <div key={mechanic.mechanic.id} className="bg-white rounded-lg shadow p-6">
+        {mechanics.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-gray-500">
+            No mechanics found. Try adjusting your search criteria.
+          </div>
+        ) : (
+        mechanics.map((mechanic) => (
+          <div key={mechanic.mechanic.id} className="card p-6">
             <div className="flex items-start gap-3 mb-3">
               <div className="flex-shrink-0">
                 {mechanic.avatar ? (
@@ -284,18 +338,14 @@ export default function FindMechanics() {
             </div>
             <button
               onClick={() => createBooking(mechanic.mechanic.id)}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="w-full btn-primary"
             >
               Request Service
             </button>
           </div>
-        ))}
-        {mechanics.length === 0 && (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            No mechanics found. Try adjusting your search criteria.
-          </div>
-        )}
+        )))}
       </div>
+      )}
     </div>
   )
 }

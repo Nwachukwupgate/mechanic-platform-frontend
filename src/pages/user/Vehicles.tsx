@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { vehiclesAPI } from '../../services/api'
+import { VEHICLE_TYPES, CAR_BRANDS } from '../../constants/vehicles'
 import { Plus, Trash2 } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
@@ -97,23 +98,30 @@ export default function UserVehicles() {
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="SEDAN">Sedan</option>
-                  <option value="SUV">SUV</option>
-                  <option value="TRUCK">Truck</option>
-                  <option value="BIKE">Bike</option>
+                  {VEHICLE_TYPES.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Brand
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
-                />
+                >
+                  <option value="">Choose brand</option>
+                  {CAR_BRANDS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -187,7 +195,9 @@ export default function UserVehicles() {
             <h3 className="text-xl font-semibold mb-2">
               {vehicle.brand} {vehicle.model}
             </h3>
-            <p className="text-gray-600 mb-1">Type: {vehicle.type}</p>
+            <p className="text-gray-600 mb-1">
+              Type: {VEHICLE_TYPES.find((t) => t.value === vehicle.type)?.label ?? vehicle.type}
+            </p>
             <p className="text-gray-600 mb-1">Year: {vehicle.year}</p>
             {vehicle.color && <p className="text-gray-600 mb-1">Color: {vehicle.color}</p>}
             {vehicle.licensePlate && (
