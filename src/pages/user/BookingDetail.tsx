@@ -25,6 +25,7 @@ export default function BookingDetail() {
   const [showRating, setShowRating] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -67,6 +68,7 @@ export default function BookingDetail() {
 
   const submitRating = async () => {
     if (!rating || !booking?.mechanic) return
+    setRatingSubmitting(true)
     try {
       await ratingsAPI.create({
         bookingId: booking.id,
@@ -81,6 +83,8 @@ export default function BookingDetail() {
       loadBooking()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to submit rating'))
+    } finally {
+      setRatingSubmitting(false)
     }
   }
 
@@ -214,10 +218,19 @@ export default function BookingDetail() {
             />
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={submitRating}
-                className="btn-primary flex-1"
+                disabled={ratingSubmitting}
+                className="btn-primary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Submit
+                {ratingSubmitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Submitting…
+                  </>
+                ) : (
+                  'Submit'
+                )}
               </button>
               <button
                 onClick={() => setShowRating(false)}

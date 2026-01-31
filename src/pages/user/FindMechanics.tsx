@@ -18,6 +18,8 @@ export default function FindMechanics() {
   const [locationError, setLocationError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [selectedMechanicIdOnMap, setSelectedMechanicIdOnMap] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [requestingMechanicId, setRequestingMechanicId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -134,6 +136,7 @@ export default function FindMechanics() {
       return
     }
 
+    setRequestingMechanicId(mechanicId)
     try {
       const res = await bookingsAPI.create({
         vehicleId: selectedVehicle,
@@ -146,6 +149,8 @@ export default function FindMechanics() {
       navigate(`/user/bookings/${res.data.id}`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to create booking'))
+    } finally {
+      setRequestingMechanicId(null)
     }
   }
 
@@ -219,10 +224,19 @@ export default function FindMechanics() {
           )}
         </div>
         <button
+          type="button"
           onClick={searchMechanics}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={searching}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          Search Mechanics
+          {searching ? (
+            <>
+              <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Searching…
+            </>
+          ) : (
+            'Search Mechanics'
+          )}
         </button>
       </div>
 
@@ -265,6 +279,7 @@ export default function FindMechanics() {
             onSelectMechanic={setSelectedMechanicIdOnMap}
             onCloseInfoWindow={() => setSelectedMechanicIdOnMap(null)}
             onRequestService={createBooking}
+            requestingMechanicId={requestingMechanicId}
           />
         </div>
       )}
@@ -337,10 +352,19 @@ export default function FindMechanics() {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => createBooking(mechanic.mechanic.id)}
-              className="w-full btn-primary"
+              disabled={requestingMechanicId === mechanic.mechanic.id}
+              className="w-full btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Request Service
+              {requestingMechanicId === mechanic.mechanic.id ? (
+                <>
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Requesting…
+                </>
+              ) : (
+                'Request Service'
+              )}
             </button>
           </div>
         )))}

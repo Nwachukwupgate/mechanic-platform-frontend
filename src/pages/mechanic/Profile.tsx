@@ -38,6 +38,8 @@ export default function MechanicProfile() {
   const [workshopAddressLoading, setWorkshopAddressLoading] = useState(false)
   const [workshopLocationLoading, setWorkshopLocationLoading] = useState(false)
   const [workshopLocationError, setWorkshopLocationError] = useState<string | null>(null)
+  const [profileUpdating, setProfileUpdating] = useState(false)
+  const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
   const workshopLocationRef = useRef<{ lat: number; lng: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -270,16 +272,21 @@ export default function MechanicProfile() {
       })
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to update profile'))
+    } finally {
+      setProfileUpdating(false)
     }
   }
 
   const toggleAvailability = async () => {
+    setAvailabilityUpdating(true)
     try {
       await mechanicsAPI.updateAvailability(!availability)
       setAvailability(!availability)
       toast.success(availability ? 'Marked unavailable' : 'Marked available')
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to update availability'))
+    } finally {
+      setAvailabilityUpdating(false)
     }
   }
 
@@ -653,9 +660,17 @@ export default function MechanicProfile() {
           </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            disabled={profileUpdating}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Update Profile
+            {profileUpdating ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Updating…
+              </>
+            ) : (
+              'Update Profile'
+            )}
           </button>
         </form>
       </div>

@@ -20,6 +20,7 @@ type MechanicsMapProps = {
   onCloseInfoWindow?: () => void
   onRequestService?: (mechanicId: string) => void
   selectedMechanicId?: string | null
+  requestingMechanicId?: string | null
 }
 
 export function MechanicsMap({
@@ -29,6 +30,7 @@ export function MechanicsMap({
   onCloseInfoWindow,
   onRequestService,
   selectedMechanicId,
+  requestingMechanicId = null,
 }: MechanicsMapProps) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
   const { isLoaded, loadError } = useJsApiLoader({
@@ -182,9 +184,17 @@ export function MechanicsMap({
                     <button
                       type="button"
                       onClick={() => onRequestService(m.mechanic.id)}
-                      className="w-full mt-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      disabled={requestingMechanicId === m.mechanic.id}
+                      className="w-full mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      Request Service
+                      {requestingMechanicId === m.mechanic.id ? (
+                        <>
+                          <span className="inline-block h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Requesting…
+                        </>
+                      ) : (
+                        'Request Service'
+                      )}
                     </button>
                   )}
                 </div>

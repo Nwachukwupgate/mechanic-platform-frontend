@@ -24,6 +24,9 @@ export default function MechanicBookingDetail() {
   const [messages, setMessages] = useState<any[]>([])
   const [cost, setCost] = useState('')
   const [status, setStatus] = useState('')
+  const [accepting, setAccepting] = useState(false)
+  const [statusUpdating, setStatusUpdating] = useState(false)
+  const [costUpdating, setCostUpdating] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -66,12 +69,15 @@ export default function MechanicBookingDetail() {
   }
 
   const acceptBooking = async () => {
+    setAccepting(true)
     try {
       await bookingsAPI.acceptBooking(booking.id)
       toast.success('Booking accepted')
       loadBooking()
-    } catch {
-      toast.error('Failed to accept booking')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to accept booking'))
+    } finally {
+      setAccepting(false)
     }
   }
 
@@ -88,6 +94,7 @@ export default function MechanicBookingDetail() {
 
   const updateCost = async () => {
     if (!cost) return
+    setCostUpdating(true)
     try {
       await bookingsAPI.updateCost(booking.id, parseFloat(cost))
       toast.success('Cost updated')
@@ -95,6 +102,8 @@ export default function MechanicBookingDetail() {
       loadBooking()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to update cost'))
+    } finally {
+      setCostUpdating(false)
     }
   }
 
@@ -149,10 +158,19 @@ export default function MechanicBookingDetail() {
 
         {status === 'REQUESTED' && (
           <button
+            type="button"
             onClick={acceptBooking}
-            className="mt-4 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium text-sm"
+            disabled={accepting}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Accept booking
+            {accepting ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Accepting…
+              </>
+            ) : (
+              'Accept booking'
+            )}
           </button>
         )}
 
@@ -160,18 +178,36 @@ export default function MechanicBookingDetail() {
           <div className="mt-4 flex flex-wrap gap-2">
             {status === 'ACCEPTED' && (
               <button
+                type="button"
                 onClick={() => updateStatus('IN_PROGRESS')}
-                className="px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-medium"
+                disabled={statusUpdating}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Start work
+                {statusUpdating ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Updating…
+                  </>
+                ) : (
+                  'Start work'
+                )}
               </button>
             )}
             {status === 'IN_PROGRESS' && (
               <button
+                type="button"
                 onClick={() => updateStatus('DONE')}
-                className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-medium"
+                disabled={statusUpdating}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Mark as done
+                {statusUpdating ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Updating…
+                  </>
+                ) : (
+                  'Mark as done'
+                )}
               </button>
             )}
           </div>
@@ -192,8 +228,20 @@ export default function MechanicBookingDetail() {
                 placeholder="Cost estimate"
                 className="px-3 py-2 border border-slate-200 rounded-xl text-sm w-32"
               />
-              <button onClick={updateCost} className="btn-primary text-sm">
-                Set cost
+              <button
+                type="button"
+                onClick={updateCost}
+                disabled={costUpdating}
+                className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {costUpdating ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  'Set cost'
+                )}
               </button>
             </div>
           )}

@@ -8,6 +8,8 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 export default function UserVehicles() {
   const [vehicles, setVehicles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     type: 'SEDAN',
@@ -34,6 +36,7 @@ export default function UserVehicles() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitting(true)
     try {
       await vehiclesAPI.create(formData)
       toast.success('Vehicle added successfully')
@@ -49,17 +52,22 @@ export default function UserVehicles() {
       loadVehicles()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to add vehicle'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this vehicle?')) return
+    setDeletingId(id)
     try {
       await vehiclesAPI.delete(id)
       toast.success('Vehicle removed')
       loadVehicles()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to delete vehicle'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -173,9 +181,17 @@ export default function UserVehicles() {
             <div className="flex space-x-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Add Vehicle
+                {submitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Adding…
+                  </>
+                ) : (
+                  'Add Vehicle'
+                )}
               </button>
               <button
                 type="button"
@@ -205,11 +221,22 @@ export default function UserVehicles() {
             )}
             <div className="flex space-x-2">
               <button
+                type="button"
                 onClick={() => handleDelete(vehicle.id)}
-                className="flex items-center space-x-1 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                disabled={deletingId === vehicle.id}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete</span>
+                {deletingId === vehicle.id ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
+                    <span>Removing…</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

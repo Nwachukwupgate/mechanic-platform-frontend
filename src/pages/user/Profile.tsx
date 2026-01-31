@@ -7,6 +7,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const { register, handleSubmit, setValue, reset } = useForm()
 
   useEffect(() => {
@@ -99,9 +100,17 @@ export default function UserProfile() {
           </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            disabled={submitting}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Update Profile
+            {submitting ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Updating…
+              </>
+            ) : (
+              'Update Profile'
+            )}
           </button>
         </form>
       </div>

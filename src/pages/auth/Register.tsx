@@ -194,9 +194,16 @@ export default function Register() {
             <button
               type="submit"
               disabled={userForm.formState.isSubmitting}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {userForm.formState.isSubmitting ? 'Registering...' : 'Register'}
+              {userForm.formState.isSubmitting ? (
+                <>
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Registering…
+                </>
+              ) : (
+                'Register'
+              )}
             </button>
           </form>
         ) : (
@@ -268,9 +275,16 @@ export default function Register() {
             <button
               type="submit"
               disabled={mechanicForm.formState.isSubmitting}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {mechanicForm.formState.isSubmitting ? 'Registering...' : 'Register'}
+              {mechanicForm.formState.isSubmitting ? (
+                <>
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Registering…
+                </>
+              ) : (
+                'Register'
+              )}
             </button>
           </form>
         )}
