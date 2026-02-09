@@ -86,13 +86,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Response interceptor for error handling
+// Response interceptor: on 401 (session expired / invalid token), log out and redirect to login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // useAuthStore.getState().logout()
-      // window.location.href = '/login'
+      const url = error.config?.url ?? ''
+      const isAuthRoute =
+        url.includes('/auth/login') ||
+        url.includes('/auth/register') ||
+        url.includes('/auth/verify-email')
+      if (!isAuthRoute) {
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -193,6 +200,26 @@ export const bookingsAPI = {
     api.put(`/bookings/${id}/status`, { status }),
   updateCost: (id: string, cost: number) =>
     api.put(`/bookings/${id}/cost`, { cost }),
+  // Quote flow
+  getOpenRequests: (radius?: number) =>
+    api.get('/bookings/open-requests', { params: radius != null ? { radius } : {} }),
+  getQuotes: (bookingId: string) => api.get(`/bookings/${bookingId}/quotes`),
+  createQuote: (bookingId: string, data: { proposedPrice: number; message?: string }) =>
+    api.post(`/bookings/${bookingId}/quotes`, data),
+  updateQuote: (bookingId: string, quoteId: string, data: { proposedPrice: number }) =>
+    api.put(`/bookings/${bookingId}/quotes/${quoteId}`, data),
+  withdrawQuote: (bookingId: string, quoteId: string) =>
+    api.put(`/bookings/${bookingId}/quotes/${quoteId}/withdraw`),
+  rejectQuote: (bookingId: string, quoteId: string) =>
+    api.put(`/bookings/${bookingId}/quotes/${quoteId}/reject`),
+  acceptQuote: (bookingId: string, quoteId: string) =>
+    api.put(`/bookings/${bookingId}/quotes/${quoteId}/accept`),
+  updateDescription: (bookingId: string, description: string | null) =>
+    api.put(`/bookings/${bookingId}/description`, { description }),
+  addClarification: (bookingId: string, question: string) =>
+    api.post(`/bookings/${bookingId}/clarifications`, { question }),
+  answerClarification: (clarificationId: string, answer: string) =>
+    api.put(`/bookings/clarifications/${clarificationId}/answer`, { answer }),
 }
 
 // Ratings API
@@ -202,4 +229,22 @@ export const ratingsAPI = {
     api.get(`/ratings/mechanic/${mechanicId}`),
   getMechanicAverage: (mechanicId: string) =>
     api.get(`/ratings/mechanic/${mechanicId}/average`),
+}
+
+// Wallet API
+export const walletAPI = {
+  initializePayment: (bookingId: string) =>
+    api.post<{ authorizationUrl: string; accessCode: string; reference: string }>('/wallet/initialize-payment', { bookingId }),
+  verifyPayment: (reference: string) =>
+    api.post<{ success: boolean; booking: any }>('/wallet/verify-payment', { reference }),
+  markDirectPaid: (bookingId: string) =>
+    api.post('/wallet/mark-direct-paid', { bookingId }),
+  getTransactions: (params?: { type?: string; limit?: number; offset?: number }) =>
+    api.get<{ items: any[]; total: number; limit: number; offset: number }>('/wallet/transactions', { params }),
+  getBalance: () =>
+    api.get<{ balanceMinor: number; balanceNaira: number; currency: string; totalEarnedFromPlatformMinor: number; totalPayoutsMinor: number }>('/wallet/balance'),
+  getOwing: () =>
+    api.get<{ owingMinor: number; owingNaira: number; currency: string; totalFeeOwedMinor: number; totalFeePaidMinor: number }>('/wallet/owing'),
+  getSummary: () =>
+    api.get<{ balance: any; owing: any; recentTransactions: any[] }>('/wallet/summary'),
 }

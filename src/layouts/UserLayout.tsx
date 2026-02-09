@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Wrench, Home, User, Car, MapPin, History, LogOut } from 'lucide-react'
+import { Wrench, Home, User, Car, MapPin, History, Wallet, LogOut } from 'lucide-react'
 
 export default function UserLayout() {
   const { logout } = useAuth()
@@ -20,6 +20,7 @@ export default function UserLayout() {
     { path: '/user/vehicles', icon: Car, label: 'Vehicles' },
     { path: '/user/find-mechanics', icon: MapPin, label: 'Find' },
     { path: '/user/history', icon: History, label: 'History' },
+    { path: '/user/wallet', icon: Wallet, label: 'Wallet' },
   ]
 
   return (

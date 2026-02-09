@@ -20,6 +20,7 @@ export default function FindMechanics() {
   const [selectedMechanicIdOnMap, setSelectedMechanicIdOnMap] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [requestingMechanicId, setRequestingMechanicId] = useState<string | null>(null)
+  const [diagnosticNotes, setDiagnosticNotes] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -130,22 +131,23 @@ export default function FindMechanics() {
     }
   }
 
-  const createBooking = async (mechanicId: string) => {
+  const createBooking = async (mechanicId?: string) => {
     if (!selectedVehicle || !selectedFault) {
       toast.error('Please select a vehicle and fault')
       return
     }
 
-    setRequestingMechanicId(mechanicId)
+    setRequestingMechanicId(mechanicId ?? 'new')
     try {
       const res = await bookingsAPI.create({
         vehicleId: selectedVehicle,
         faultId: selectedFault,
-        mechanicId,
+        ...(mechanicId && { mechanicId }),
+        description: diagnosticNotes.trim() || undefined,
         locationLat: userLocation?.lat,
         locationLng: userLocation?.lng,
       })
-      toast.success('Booking requested successfully')
+      toast.success(mechanicId ? 'Booking requested successfully' : 'Job posted. Mechanics can send you quotes.')
       navigate(`/user/bookings/${res.data.id}`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to create booking'))
@@ -222,22 +224,51 @@ export default function FindMechanics() {
               {locationError}
             </p>
           )}
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Additional details (optional)
+          </label>
+          <textarea
+            value={diagnosticNotes}
+            onChange={(e) => setDiagnosticNotes(e.target.value)}
+            placeholder="e.g. When it started, any sounds, warning lights, or what you’ve already tried. Helps mechanics give a better price."
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          />
         </div>
-        <button
-          type="button"
-          onClick={searchMechanics}
-          disabled={searching}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {searching ? (
-            <>
-              <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Searching…
-            </>
-          ) : (
-            'Search Mechanics'
-          )}
-        </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={searchMechanics}
+            disabled={searching}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {searching ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Searching…
+              </>
+            ) : (
+              'Search Mechanics'
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => createBooking()}
+            disabled={searching || !selectedVehicle || !selectedFault || !userLocation || requestingMechanicId != null}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {requestingMechanicId === 'new' ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Posting…
+              </>
+            ) : (
+              'Post job & get quotes'
+            )}
+          </button>
+        </div>
       </div>
 
       {mechanics.length > 0 && (

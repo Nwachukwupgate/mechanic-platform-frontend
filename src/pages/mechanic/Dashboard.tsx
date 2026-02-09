@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { bookingsAPI } from '../../services/api'
-import { Briefcase, Clock, CheckCircle } from 'lucide-react'
+import { connectSocket, onQuoteEvents } from '../../services/socket'
+import { Briefcase, Clock, CheckCircle, DollarSign } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
 export default function MechanicDashboard() {
   const [bookings, setBookings] = useState<any[]>([])
+  const [openRequests, setOpenRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadBookings()
-  }, [])
+  const [openRequestsLoading, setOpenRequestsLoading] = useState(true)
 
   const loadBookings = () => {
     bookingsAPI
@@ -21,6 +20,33 @@ export default function MechanicDashboard() {
       })
       .catch(() => setLoading(false))
   }
+
+  const loadOpenRequests = () => {
+    setOpenRequestsLoading(true)
+    bookingsAPI
+      .getOpenRequests()
+      .then((res) => {
+        setOpenRequests(res.data || [])
+        setOpenRequestsLoading(false)
+      })
+      .catch(() => setOpenRequestsLoading(false))
+  }
+
+  useEffect(() => {
+    loadBookings()
+    loadOpenRequests()
+    connectSocket()
+    const unsub = onQuoteEvents({
+      onQuoteAccepted: () => {
+        loadBookings()
+        loadOpenRequests()
+      },
+      onQuoteRejected: () => {
+        loadOpenRequests()
+      },
+    })
+    return () => unsub()
+  }, [])
 
   if (loading) {
     return (
@@ -72,10 +98,58 @@ export default function MechanicDashboard() {
         </div>
       </div>
 
+      {/* Open requests: jobs you can submit a price for (real-time) */}
+      <div className="bg-white rounded-lg shadow mb-6">
+        <div className="px-6 py-4 border-b flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-emerald-600" />
+          <h2 className="text-xl font-semibold">Open requests (submit your price)</h2>
+        </div>
+        {openRequestsLoading ? (
+          <div className="px-6 py-8 flex justify-center">
+            <LoadingSpinner />
+          </div>
+        ) : openRequests.length === 0 ? (
+          <div className="px-6 py-8 text-center text-gray-500">
+            No open requests in your area right now. Check back later.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {openRequests.map((req: any) => (
+              <Link
+                key={req.id}
+                to={`/mechanic/bookings/${req.id}`}
+                className="block px-6 py-4 hover:bg-gray-50"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">
+                      {req.vehicle?.brand} {req.vehicle?.model} · {req.fault?.name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Customer: {req.user?.firstName} {req.user?.lastName}
+                      {req.distanceKm != null && ` · ${req.distanceKm.toFixed(1)} km away`}
+                    </p>
+                    {req.myQuote && (
+                      <p className="text-sm font-medium text-emerald-600 mt-1">
+                        Your quote: ${Number(req.myQuote.proposedPrice).toLocaleString()}
+                        {req.myQuote.status === 'PENDING' && ' (pending)'}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-slate-500">
+                    {req.myQuote ? 'Update quote' : 'Submit quote'}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       {pendingBookings.length > 0 && (
         <div className="bg-white rounded-lg shadow mb-6">
           <div className="px-6 py-4 border-b">
-            <h2 className="text-xl font-semibold">Pending Requests</h2>
+            <h2 className="text-xl font-semibold">Pending Requests (assigned to you)</h2>
           </div>
           <div className="divide-y">
             {pendingBookings.slice(0, 5).map((booking) => (

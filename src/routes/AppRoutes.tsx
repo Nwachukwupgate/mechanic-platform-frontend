@@ -18,6 +18,7 @@ import UserVehicles from '../pages/user/Vehicles'
 import FindMechanics from '../pages/user/FindMechanics'
 import BookingDetail from '../pages/user/BookingDetail'
 import JobHistory from '../pages/user/JobHistory'
+import UserWallet from '../pages/user/Wallet'
 
 // Mechanic pages
 import MechanicDashboard from '../pages/mechanic/Dashboard'
@@ -25,6 +26,7 @@ import MechanicProfile from '../pages/mechanic/Profile'
 import MechanicBookings from '../pages/mechanic/Bookings'
 import MechanicBookingDetail from '../pages/mechanic/BookingDetail'
 import MechanicJobHistory from '../pages/mechanic/JobHistory'
+import MechanicWallet from '../pages/mechanic/Wallet'
 
 // Layouts
 import PublicLayout from '../layouts/PublicLayout'
@@ -94,6 +96,7 @@ export function AppRoutes() {
         <Route path="find-mechanics" element={<FindMechanics />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
         <Route path="history" element={<JobHistory />} />
+        <Route path="wallet" element={<UserWallet />} />
       </Route>
 
       {/* Mechanic routes */}
@@ -110,6 +113,7 @@ export function AppRoutes() {
         <Route path="bookings" element={<MechanicBookings />} />
         <Route path="bookings/:id" element={<MechanicBookingDetail />} />
         <Route path="history" element={<MechanicJobHistory />} />
+        <Route path="wallet" element={<MechanicWallet />} />
       </Route>
 
       {/* Catch all */}

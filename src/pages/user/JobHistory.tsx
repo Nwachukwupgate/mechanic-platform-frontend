@@ -36,22 +36,35 @@ export default function JobHistory() {
               to={`/user/bookings/${booking.id}`}
               className="block px-6 py-4 hover:bg-gray-50"
             >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">
-                    {booking.vehicle?.brand} {booking.vehicle?.model}
-                  </p>
-                  <p className="text-sm text-gray-600">{booking.fault?.name}</p>
+              <div className="flex justify-between items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {booking.mechanic && (
-                    <p className="text-sm text-gray-600">
-                      Mechanic: {booking.mechanic.companyName}
+                    booking.mechanic.profile?.avatar ? (
+                      <img src={booking.mechanic.profile.avatar} alt="" className="h-12 w-12 rounded-full object-cover border border-gray-200 shrink-0" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                        <span className="text-gray-500 text-lg font-semibold">
+                          {booking.mechanic.companyName?.charAt(0) ?? 'M'}
+                        </span>
+                      </div>
+                    )
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {booking.vehicle?.brand} {booking.vehicle?.model}
                     </p>
-                  )}
-                  {booking.actualCost && (
-                    <p className="text-sm font-medium">Cost: ${booking.actualCost}</p>
-                  )}
+                    <p className="text-sm text-gray-600">{booking.fault?.name}</p>
+                    {booking.mechanic && (
+                      <p className="text-sm text-gray-600">
+                        Mechanic: {booking.mechanic.companyName}
+                      </p>
+                    )}
+                    {booking.actualCost && (
+                      <p className="text-sm font-medium">Cost: ₦{Number(booking.actualCost).toLocaleString()}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
                     {booking.status}
                   </span>

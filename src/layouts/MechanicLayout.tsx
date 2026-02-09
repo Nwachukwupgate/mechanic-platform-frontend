@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Wrench, Home, User, Briefcase, History, LogOut } from 'lucide-react'
+import { Wrench, Home, User, Briefcase, History, Wallet, LogOut } from 'lucide-react'
 
 export default function MechanicLayout() {
   const { logout } = useAuth()
@@ -19,6 +19,7 @@ export default function MechanicLayout() {
     { path: '/mechanic/profile', icon: User, label: 'Profile' },
     { path: '/mechanic/bookings', icon: Briefcase, label: 'Bookings' },
     { path: '/mechanic/history', icon: History, label: 'History' },
+    { path: '/mechanic/wallet', icon: Wallet, label: 'Wallet' },
   ]
 
   return (

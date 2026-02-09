@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { bookingsAPI, getApiErrorMessage } from '../../services/api'
-import { connectSocket, getSocket } from '../../services/socket'
+import { connectSocket, getSocket, onQuoteEvents } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { ArrowLeft, DollarSign, MapPin, User } from 'lucide-react'
+import { ArrowLeft, DollarSign, MapPin, User, MessageCircle, HelpCircle } from 'lucide-react'
 
 const statusStyles: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
@@ -22,14 +22,19 @@ export default function MechanicBookingDetail() {
   const currentUser = useAuthStore((s) => s.user)
   const [booking, setBooking] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
-  const [cost, setCost] = useState('')
   const [status, setStatus] = useState('')
   const [accepting, setAccepting] = useState(false)
   const [statusUpdating, setStatusUpdating] = useState(false)
-  const [costUpdating, setCostUpdating] = useState(false)
+  const [quotePrice, setQuotePrice] = useState('')
+  const [quoteMessage, setQuoteMessage] = useState('')
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false)
+  const [clarificationQuestion, setClarificationQuestion] = useState('')
+  const [clarificationSubmitting, setClarificationSubmitting] = useState(false)
+  const loadBookingRef = useRef<() => Promise<void>>(() => Promise.resolve())
 
   useEffect(() => {
     if (!id) return
+    loadBookingRef.current = loadBooking
     loadBooking()
     connectSocket()
     const socket = getSocket()
@@ -39,8 +44,13 @@ export default function MechanicBookingDetail() {
         setMessages((prev) => [...prev, message])
       })
     }
+    const unsub = onQuoteEvents({
+      onQuoteRejected: (p) => p.bookingId === id && loadBookingRef.current(),
+      onQuoteAccepted: (p) => p.bookingId === id && loadBookingRef.current(),
+    })
     return () => {
       if (socket) socket.off('new_message')
+      unsub()
     }
   }, [id])
 
@@ -50,6 +60,11 @@ export default function MechanicBookingDetail() {
       setBooking(res.data)
       setMessages(res.data.messages || [])
       setStatus(res.data.status)
+      const q = res.data.quotes?.find((x: any) => x.mechanicId === currentUser?.id || x.mechanic?.id === currentUser?.id)
+      if (q) {
+        setQuotePrice(String(q.proposedPrice))
+        setQuoteMessage(q.message || '')
+      }
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to load booking'))
     }
@@ -65,6 +80,38 @@ export default function MechanicBookingDetail() {
         receiverType: 'USER',
         content,
       })
+    }
+  }
+
+  const myQuote = booking?.quotes?.find((q: any) => q.mechanicId === currentUser?.id || q.mechanic?.id === currentUser?.id)
+  const isOpenRequest = booking?.status === 'REQUESTED' && !booking?.mechanicId
+
+  const submitOrUpdateQuote = async () => {
+    if (!id || !quotePrice.trim()) {
+      toast.error('Enter your price')
+      return
+    }
+    const price = parseFloat(quotePrice)
+    if (Number.isNaN(price) || price <= 0) {
+      toast.error('Enter a valid price')
+      return
+    }
+    setQuoteSubmitting(true)
+    try {
+      if (myQuote?.id) {
+        await bookingsAPI.updateQuote(id, myQuote.id, { proposedPrice: price })
+        toast.success('Quote updated')
+      } else {
+        await bookingsAPI.createQuote(id, { proposedPrice: price, message: quoteMessage.trim() || undefined })
+        toast.success('Quote submitted')
+      }
+      setQuotePrice('')
+      setQuoteMessage('')
+      loadBooking()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit quote'))
+    } finally {
+      setQuoteSubmitting(false)
     }
   }
 
@@ -92,18 +139,19 @@ export default function MechanicBookingDetail() {
     }
   }
 
-  const updateCost = async () => {
-    if (!cost) return
-    setCostUpdating(true)
+  const askClarification = async () => {
+    const q = clarificationQuestion?.trim()
+    if (!id || !q) return
+    setClarificationSubmitting(true)
     try {
-      await bookingsAPI.updateCost(booking.id, parseFloat(cost))
-      toast.success('Cost updated')
-      setCost('')
+      await bookingsAPI.addClarification(id, q)
+      toast.success('Question sent. The customer can answer from their booking page.')
+      setClarificationQuestion('')
       loadBooking()
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Failed to update cost'))
+      toast.error(getApiErrorMessage(error, 'Failed to send question'))
     } finally {
-      setCostUpdating(false)
+      setClarificationSubmitting(false)
     }
   }
 
@@ -156,7 +204,130 @@ export default function MechanicBookingDetail() {
           </span>
         </div>
 
-        {status === 'REQUESTED' && (
+        {/* Job details / Pre-job discussion — helps price; for records after accept */}
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <h3 className="font-medium text-slate-800 mb-2 flex items-center gap-2">
+            {booking.mechanicId ? (
+              <>
+                <MessageCircle className="h-4 w-4 text-primary-600" />
+                Pre-job discussion (for records)
+              </>
+            ) : (
+              <>
+                <HelpCircle className="h-4 w-4 text-primary-600" />
+                Job details — use this to set your price
+              </>
+            )}
+          </h3>
+          {(booking.description || (Array.isArray(booking.clarifications) && booking.clarifications.length > 0)) ? (
+            <div className="space-y-3 text-sm">
+              {booking.description && (
+                <p className="text-slate-700"><span className="font-medium text-slate-600">Customer description:</span> {booking.description}</p>
+              )}
+              {Array.isArray(booking.clarifications) && booking.clarifications.length > 0 && (
+                <div>
+                  <p className="font-medium text-slate-600 mb-1">Q&A</p>
+                  <ul className="space-y-2">
+                    {booking.clarifications.map((c: any) => (
+                      <li key={c.id} className="pl-2 border-l-2 border-slate-200">
+                        <span className="text-slate-600">Q: {c.question}</span>
+                        {c.answer ? (
+                          <p className="mt-0.5 text-slate-700">A: {c.answer}</p>
+                        ) : (
+                          <p className="mt-0.5 text-slate-500 italic">Waiting for customer answer</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-slate-500 text-sm">No extra details from the customer yet.</p>
+          )}
+          {isOpenRequest && (
+            <>
+              <div className="mt-3 flex flex-wrap gap-2 items-end">
+                <input
+                  type="text"
+                  value={clarificationQuestion}
+                  onChange={(e) => setClarificationQuestion(e.target.value)}
+                  placeholder="Ask the customer a short question (e.g. Is the check engine light on?)"
+                  maxLength={500}
+                  className="flex-1 min-w-[200px] px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={askClarification}
+                  disabled={clarificationSubmitting || !clarificationQuestion.trim()}
+                  className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {clarificationSubmitting ? 'Sending…' : 'Ask question'}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Up to 2 questions per job (max 5 total). The customer answers from their booking page.
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Open request: submit or update your price (real-time) */}
+        {isOpenRequest && (
+          <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+            <h3 className="font-medium text-slate-800 mb-2">
+              {myQuote ? 'Update your quote' : 'Submit your price for this job'}
+            </h3>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Price ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={quotePrice}
+                  onChange={(e) => setQuotePrice(e.target.value)}
+                  placeholder="e.g. 50"
+                  className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-sm font-medium text-slate-600 mb-1">Message (optional)</label>
+                <input
+                  type="text"
+                  value={quoteMessage}
+                  onChange={(e) => setQuoteMessage(e.target.value)}
+                  placeholder="e.g. Available tomorrow"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={submitOrUpdateQuote}
+                disabled={quoteSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {quoteSubmitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Submitting…
+                  </>
+                ) : myQuote ? (
+                  'Update quote'
+                ) : (
+                  'Submit quote'
+                )}
+              </button>
+            </div>
+            {myQuote && (
+              <p className="mt-2 text-sm text-slate-500">
+                Status: {myQuote.status}. User may accept or reject. You can increase your price above.
+              </p>
+            )}
+          </div>
+        )}
+
+        {status === 'REQUESTED' && booking?.mechanicId && (
           <button
             type="button"
             onClick={acceptBooking}
@@ -213,39 +384,18 @@ export default function MechanicBookingDetail() {
           </div>
         )}
 
-        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-slate-400" />
-          {booking.estimatedCost != null ? (
+        {/* Cost comes from the accepted quote only — no separate "set cost" in the bargain */}
+        {booking.estimatedCost != null && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-slate-400" />
             <span className="font-semibold text-slate-800">
               ${Number(booking.estimatedCost).toLocaleString()}
             </span>
-          ) : (
-            <div className="flex gap-2 flex-wrap">
-              <input
-                type="number"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="Cost estimate"
-                className="px-3 py-2 border border-slate-200 rounded-xl text-sm w-32"
-              />
-              <button
-                type="button"
-                onClick={updateCost}
-                disabled={costUpdating}
-                className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {costUpdating ? (
-                  <>
-                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  'Set cost'
-                )}
-              </button>
-            </div>
-          )}
-        </div>
+            {booking.mechanicId && (
+              <span className="text-xs text-slate-500">(from accepted quote)</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Job location */}
@@ -270,16 +420,23 @@ export default function MechanicBookingDetail() {
         </div>
       )}
 
-      {/* Chat */}
+      {/* Chat — only after the customer has accepted a quote */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-slate-800 mb-3">Conversation</h2>
-        <BookingChat
-          messages={messages}
-          currentUserId={currentUser?.id ?? ''}
-          otherPartyName={customerName}
-          onSend={sendMessage}
-          placeholder="Type a message..."
-        />
+        {booking.mechanicId ? (
+          <BookingChat
+            messages={messages}
+            currentUserId={currentUser?.id ?? ''}
+            otherPartyName={customerName}
+            onSend={sendMessage}
+            placeholder="Type a message..."
+          />
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
+            <p className="font-medium text-slate-700">Chat is available after the customer accepts a quote</p>
+            <p className="mt-1 text-sm">Submit your price above. Once the customer accepts your quote, you can chat here.</p>
+          </div>
+        )}
       </div>
     </div>
   )
