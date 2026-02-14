@@ -162,6 +162,14 @@ export const mechanicsAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  // Bank accounts (for withdrawals)
+  listBankAccounts: () => api.get<Array<{ id: string; bankCode: string; bankName: string; accountNumber: string; accountName: string; isDefault: boolean }>>('/mechanics/me/bank-accounts'),
+  addBankAccount: (data: { bankCode: string; bankName: string; accountNumber: string; accountName: string; isDefault?: boolean }) =>
+    api.post('/mechanics/me/bank-accounts', data),
+  updateBankAccount: (accountId: string, data: { bankCode?: string; bankName?: string; accountNumber?: string; accountName?: string; isDefault?: boolean }) =>
+    api.put(`/mechanics/me/bank-accounts/${accountId}`, data),
+  setDefaultBankAccount: (accountId: string) => api.put(`/mechanics/me/bank-accounts/${accountId}/default`),
+  deleteBankAccount: (accountId: string) => api.delete(`/mechanics/me/bank-accounts/${accountId}`),
 }
 
 // Vehicles API
@@ -233,6 +241,8 @@ export const ratingsAPI = {
 
 // Wallet API
 export const walletAPI = {
+  /** List Nigerian banks for mechanic withdrawal account form (public, no auth). */
+  getBanks: () => api.get<Array<{ code: string; name: string }>>('/wallet/banks'),
   initializePayment: (bookingId: string) =>
     api.post<{ authorizationUrl: string; accessCode: string; reference: string }>('/wallet/initialize-payment', { bookingId }),
   verifyPayment: (reference: string) =>
@@ -247,4 +257,6 @@ export const walletAPI = {
     api.get<{ owingMinor: number; owingNaira: number; currency: string; totalFeeOwedMinor: number; totalFeePaidMinor: number }>('/wallet/owing'),
   getSummary: () =>
     api.get<{ balance: any; owing: any; recentTransactions: any[] }>('/wallet/summary'),
+  /** Mechanic: Withdraw balance to default bank account (sends via Paystack, then records). */
+  withdraw: (amountMinor: number) => api.post('/wallet/withdraw', { amountMinor }),
 }

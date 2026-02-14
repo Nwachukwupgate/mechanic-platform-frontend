@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { walletAPI } from '../../services/api'
+import { walletAPI, mechanicsAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Banknote, AlertCircle } from 'lucide-react'
+import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Banknote, AlertCircle, Building2, Plus, Star, Trash2, ArrowDownToLine } from 'lucide-react'
+
+type BankAccount = {
+  id: string
+  bankCode: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+  isDefault: boolean
+}
 
 const typeLabels: Record<string, string> = {
   USER_PAYMENT: 'User paid platform',
@@ -23,14 +32,28 @@ export default function MechanicWallet() {
     owing: any
     recentTransactions: any[]
   } | null>(null)
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([])
   const [loading, setLoading] = useState(true)
+  const [showAddBank, setShowAddBank] = useState(false)
+  const [addForm, setAddForm] = useState({ bankCode: '', bankName: '', accountNumber: '', accountName: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawing, setWithdrawing] = useState(false)
 
-  useEffect(() => {
-    walletAPI
-      .getSummary()
-      .then((res) => setSummary(res.data))
+  const loadData = () => {
+    setLoading(true)
+    Promise.all([
+      walletAPI.getSummary().then((res) => setSummary(res.data)),
+      mechanicsAPI.listBankAccounts().then((res) => setBankAccounts(res.data)).catch(() => setBankAccounts([])),
+      walletAPI.getBanks().then((res) => setBanks(res.data)).catch(() => setBanks([])),
+    ])
       .catch(() => toast.error('Failed to load wallet'))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
   if (loading) {
@@ -91,6 +114,217 @@ export default function MechanicWallet() {
             Total fee owed: ₦{((owing.totalFeeOwedMinor ?? 0) / 100).toLocaleString()} · Paid: ₦{((owing.totalFeePaidMinor ?? 0) / 100).toLocaleString()}
           </p>
         </div>
+      </div>
+
+      {/* Withdraw to bank */}
+      <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6 mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-xl bg-emerald-100 text-emerald-700">
+            <ArrowDownToLine className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-slate-800">Withdraw to bank</h2>
+            <p className="text-sm text-slate-500">Send your balance to your default bank account. Money is sent via Paystack and recorded instantly.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[140px]">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₦)</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              placeholder="0"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={withdrawing || !withdrawAmount || (balance.balanceMinor ?? 0) < 100}
+            onClick={async () => {
+              const naira = parseFloat(withdrawAmount)
+              if (!Number.isFinite(naira) || naira < 1) {
+                toast.error('Enter a valid amount (min ₦1)')
+                return
+              }
+              const amountMinor = Math.round(naira * 100)
+              if (amountMinor > (balance.balanceMinor ?? 0)) {
+                toast.error('Amount exceeds your balance')
+                return
+              }
+              setWithdrawing(true)
+              try {
+                await walletAPI.withdraw(amountMinor)
+                toast.success(`₦${naira.toLocaleString()} sent to your bank account`)
+                setWithdrawAmount('')
+                loadData()
+              } catch (e: any) {
+                toast.error(e.response?.data?.message || 'Withdrawal failed')
+              } finally {
+                setWithdrawing(false)
+              }
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            {withdrawing ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Sending…
+              </>
+            ) : (
+              <>
+                <ArrowDownToLine className="h-4 w-4" />
+                Withdraw
+              </>
+            )}
+          </button>
+        </div>
+        {(balance.balanceMinor ?? 0) < 100 && (
+          <p className="mt-2 text-sm text-slate-500">Add a default bank account below and ensure you have at least ₦1 balance.</p>
+        )}
+      </div>
+
+      {/* Withdrawal bank accounts */}
+      <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-primary-100 text-primary-600">
+              <Building2 className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Withdrawal account</h2>
+              <p className="text-sm text-slate-500">Add a bank account so we can pay you. Withdrawals go to your default account.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddBank((v) => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            {showAddBank ? 'Cancel' : 'Add account'}
+          </button>
+        </div>
+        {showAddBank && (
+          <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Bank</label>
+              <select
+                value={addForm.bankCode}
+                onChange={(e) => {
+                  const code = e.target.value
+                  const bank = banks.find((b) => b.code === code)
+                  setAddForm((f) => ({ ...f, bankCode: code, bankName: bank?.name ?? '' }))
+                }}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Select bank</option>
+                {banks.map((b) => (
+                  <option key={b.code} value={b.code}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Account number</label>
+              <input
+                type="text"
+                value={addForm.accountNumber}
+                onChange={(e) => setAddForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '').slice(0, 15) }))}
+                placeholder="10 digits"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Account name</label>
+              <input
+                type="text"
+                value={addForm.accountName}
+                onChange={(e) => setAddForm((f) => ({ ...f, accountName: e.target.value }))}
+                placeholder="Name on account"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={submitting || !addForm.bankCode || addForm.accountNumber.length < 10 || !addForm.accountName.trim()}
+              onClick={async () => {
+                setSubmitting(true)
+                try {
+                  await mechanicsAPI.addBankAccount({
+                    bankCode: addForm.bankCode,
+                    bankName: addForm.bankName,
+                    accountNumber: addForm.accountNumber,
+                    accountName: addForm.accountName.trim(),
+                  })
+                  toast.success('Bank account added')
+                  setAddForm({ bankCode: '', bankName: '', accountNumber: '', accountName: '' })
+                  setShowAddBank(false)
+                  loadData()
+                } catch (e: any) {
+                  toast.error(e.response?.data?.message || 'Failed to add account')
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {submitting ? 'Adding…' : 'Add account'}
+            </button>
+          </div>
+        )}
+        <ul className="mt-4 space-y-2">
+          {bankAccounts.length === 0 && !showAddBank && (
+            <li className="text-slate-500 text-sm py-2">No bank account added yet. Add one so we can pay you.</li>
+          )}
+          {bankAccounts.map((acc) => (
+            <li key={acc.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="min-w-0">
+                <p className="font-medium text-slate-800">{acc.bankName}</p>
+                <p className="text-sm text-slate-600">{acc.accountName} · {acc.accountNumber.replace(/(\d{4})(\d{4})(\d+)/, '$1****$3')}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!acc.isDefault && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await mechanicsAPI.setDefaultBankAccount(acc.id)
+                        toast.success('Default account updated')
+                        loadData()
+                      } catch {
+                        toast.error('Failed to set default')
+                      }
+                    }}
+                    className="p-2 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                    title="Set as default"
+                  >
+                    <Star className="h-4 w-4" />
+                  </button>
+                )}
+                {acc.isDefault && <span className="px-2 py-0.5 rounded bg-primary-100 text-primary-700 text-xs font-medium">Default</span>}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm('Remove this bank account?')) return
+                    try {
+                      await mechanicsAPI.deleteBankAccount(acc.id)
+                      toast.success('Account removed')
+                      loadData()
+                    } catch {
+                      toast.error('Failed to remove')
+                    }
+                  }}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                  title="Remove"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="bg-white rounded-xl shadow-card border border-slate-100 overflow-hidden">

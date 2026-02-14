@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { authAPI } from '../../services/api'
+import { MapBackground } from '../../components/MapBackground'
 
 const userRegisterSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -73,20 +74,23 @@ export default function Register() {
 
   if (success) {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-green-800 mb-2">Registration Successful!</h2>
-          <p className="text-green-700">
-            Please check your email to verify your account before logging in.
-          </p>
+      <MapBackground variant="light">
+        <div className="max-w-md mx-auto py-12 px-4">
+          <div className="bg-green-50/95 backdrop-blur border border-green-200 rounded-xl p-6 text-center shadow-md">
+            <h2 className="text-xl font-semibold text-green-800 mb-2">Registration Successful!</h2>
+            <p className="text-green-700">
+              Please check your email to verify your account before logging in.
+            </p>
+          </div>
         </div>
-      </div>
+      </MapBackground>
     )
   }
 
   return (
-    <div className="max-w-md mx-auto py-12">
-      <div className="bg-white shadow-md rounded-lg px-8 pt-6 pb-8">
+    <MapBackground variant="light">
+      <div className="max-w-md mx-auto py-12 px-4">
+        <div className="bg-white/95 backdrop-blur shadow-md rounded-xl px-8 pt-6 pb-8 border border-slate-200/80">
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
 
         <div className="mb-6">
@@ -295,7 +299,8 @@ export default function Register() {
             Login
           </Link>
         </p>
+        </div>
       </div>
-    </div>
+    </MapBackground>
   )
 }
