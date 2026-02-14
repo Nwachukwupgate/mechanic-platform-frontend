@@ -275,9 +275,9 @@ export default function BookingDetail() {
                 I paid the mechanic directly
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-2">
+            {/* <p className="text-xs text-slate-500 mt-2">
               Pay us via Paystack and we pay the mechanic (80%). Or pay the mechanic yourself and they settle our fee (20%).
-            </p>
+            </p> */}
           </div>
         )}
         {booking.status === 'DONE' && !showRating && (
