@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Wrench, MapPin, Clock, Shield } from 'lucide-react'
-import { MapBackground } from '../../components/MapBackground'
 
 export default function Home() {
   return (
     <div>
-      {/* Hero with map background */}
-      <MapBackground variant="dark" className="!min-h-[70vh]">
-        <section className="text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+      {/* Hero — solid gradient, no map */}
+      <section className="relative min-h-[70vh] bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),transparent)]" aria-hidden />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
               Find trusted mechanics near you
@@ -32,8 +31,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        </section>
-      </MapBackground>
+      </section>
 
       {/* How it works */}
       <section className="py-16 md:py-20 bg-white">

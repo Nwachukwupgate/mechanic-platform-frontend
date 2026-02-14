@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Wrench, Home, User, Car, MapPin, History, Wallet, LogOut } from 'lucide-react'
+import { MapBackground } from '../components/MapBackground'
 
 export default function UserLayout() {
   const { logout } = useAuth()
@@ -24,7 +25,8 @@ export default function UserLayout() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 md:pb-0">
+    <MapBackground variant="light" className="min-h-screen">
+    <div className="min-h-screen pb-24 md:pb-0">
       {/* Desktop Top Navbar */}
       <nav className="hidden md:block bg-white shadow-card border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -103,5 +105,6 @@ export default function UserLayout() {
         <Outlet />
       </main>
     </div>
+    </MapBackground>
   )
 }

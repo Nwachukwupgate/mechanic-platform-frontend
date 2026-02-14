@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { authAPI } from '../../services/api'
 import { useAuthStore } from '../../store/authStore'
-import { MapBackground } from '../../components/MapBackground'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -100,9 +99,9 @@ export default function Login() {
   }
 
   return (
-    <MapBackground variant="light">
-      <div className="max-w-md mx-auto py-12 px-4">
-        <div className="bg-white/95 backdrop-blur shadow-md rounded-xl px-8 pt-6 pb-8 border border-slate-200/80">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white shadow-md rounded-xl px-8 pt-6 pb-8 border border-slate-200">
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -175,6 +174,6 @@ export default function Login() {
         </p>
         </div>
       </div>
-    </MapBackground>
+    </div>
   )
 }

@@ -6,7 +6,7 @@ import { connectSocket, getSocket, onQuoteEvents } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { ArrowLeft, DollarSign, MapPin, User, MessageCircle, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Banknote, MapPin, User, MessageCircle, HelpCircle } from 'lucide-react'
 
 const statusStyles: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
@@ -280,7 +280,7 @@ export default function MechanicBookingDetail() {
             </h3>
             <div className="flex flex-wrap gap-3 items-end">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Price ($)</label>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Price (₦)</label>
                 <input
                   type="number"
                   min="0"
@@ -387,9 +387,9 @@ export default function MechanicBookingDetail() {
         {/* Cost comes from the accepted quote only — no separate "set cost" in the bargain */}
         {booking.estimatedCost != null && (
           <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-slate-400" />
+            <Banknote className="h-5 w-5 text-slate-400" />
             <span className="font-semibold text-slate-800">
-              ${Number(booking.estimatedCost).toLocaleString()}
+              ₦{Number(booking.estimatedCost).toLocaleString()}
             </span>
             {booking.mechanicId && (
               <span className="text-xs text-slate-500">(from accepted quote)</span>

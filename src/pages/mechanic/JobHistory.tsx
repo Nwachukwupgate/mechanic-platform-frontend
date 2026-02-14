@@ -46,7 +46,7 @@ export default function MechanicJobHistory() {
                     Customer: {booking.user?.firstName} {booking.user?.lastName}
                   </p>
                   {booking.actualCost && (
-                    <p className="text-sm font-medium">Cost: ${booking.actualCost}</p>
+                    <p className="text-sm font-medium">Cost: ₦{Number(booking.actualCost).toLocaleString()}</p>
                   )}
                 </div>
                 <div className="text-right">

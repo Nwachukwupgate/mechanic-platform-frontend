@@ -103,7 +103,7 @@ export default function MechanicBookings() {
                     Customer: {booking.user?.firstName} {booking.user?.lastName}
                   </p>
                   {booking.estimatedCost && (
-                    <p className="text-sm font-medium">Est. Cost: ${booking.estimatedCost}</p>
+                    <p className="text-sm font-medium">Est. Cost: ₦{Number(booking.estimatedCost).toLocaleString()}</p>
                   )}
                 </div>
                 <span
