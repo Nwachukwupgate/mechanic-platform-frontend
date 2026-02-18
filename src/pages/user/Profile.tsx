@@ -35,7 +35,7 @@ export default function UserProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner variant="logo" size="lg" />
       </div>
     )
   }

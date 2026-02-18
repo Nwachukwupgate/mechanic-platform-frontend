@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Wrench, Home, User, Briefcase, History, Wallet, LogOut } from 'lucide-react'
+import { Home, User, Briefcase, History, Wallet, LogOut } from 'lucide-react'
 import { MapBackground } from '../components/MapBackground'
 
 export default function MechanicLayout() {
@@ -32,9 +32,7 @@ export default function MechanicLayout() {
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-8">
               <Link to="/mechanic" className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
-                  <Wrench className="h-5 w-5" />
-                </div>
+                <img src="/logo.jpeg" alt="Mechanic Platform" className="h-14 w-14 rounded-xl object-cover" />
                 <span className="font-semibold text-slate-800">Mechanic Platform</span>
               </Link>
               <div className="flex gap-1">

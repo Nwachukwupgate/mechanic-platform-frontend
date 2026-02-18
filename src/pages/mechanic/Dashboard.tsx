@@ -80,7 +80,7 @@ export default function MechanicDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[320px]">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner variant="logo" size="lg" />
       </div>
     )
   }
@@ -167,7 +167,7 @@ export default function MechanicDashboard() {
 
         {openRequestsLoading ? (
           <div className="flex justify-center rounded-xl border border-slate-200 bg-white py-16">
-            <LoadingSpinner />
+            <LoadingSpinner variant="logo" />
           </div>
         ) : openRequests.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">

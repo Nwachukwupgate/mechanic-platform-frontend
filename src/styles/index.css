@@ -13,6 +13,13 @@
   }
 }
 
+/* Homepage scroll-reveal delays (use with animate-fade-in-up) */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
 @layer components {
   .btn-primary {
     @apply px-4 py-2.5 text-white font-medium rounded-xl transition-colors;

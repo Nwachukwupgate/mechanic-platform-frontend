@@ -5,6 +5,8 @@ import { useAuthStore } from '../store/authStore'
 import Home from '../pages/public/Home'
 import ForUsers from '../pages/public/ForUsers'
 import ForMechanics from '../pages/public/ForMechanics'
+import About from '../pages/public/About'
+import FAQ from '../pages/public/FAQ'
 
 // Auth pages
 import Login from '../pages/auth/Login'
@@ -69,6 +71,8 @@ export function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="for-users" element={<ForUsers />} />
         <Route path="for-mechanics" element={<ForMechanics />} />
+        <Route path="about" element={<About />} />
+        <Route path="faq" element={<FAQ />} />
         <Route
           path="login"
           element={

@@ -158,7 +158,7 @@ export default function MechanicBookingDetail() {
   if (!booking) {
     return (
       <div className="flex items-center justify-center min-h-[320px]">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner variant="logo" size="lg" />
       </div>
     )
   }
