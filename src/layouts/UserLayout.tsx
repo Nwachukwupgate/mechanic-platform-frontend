@@ -33,7 +33,7 @@ export default function UserLayout() {
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-8">
               <Link to="/user" className="flex items-center gap-2">
-                <img src="/logo.jpeg" alt="Mechanic Platform" className="h-9 w-9 rounded-xl object-cover" />
+                <img src="/logo.png" alt="Mechanic Platform" className="h-9 w-9 rounded-xl object-cover" />
                 <span className="font-semibold text-slate-800">Mechanic Platform</span>
               </Link>
               <div className="flex gap-1">

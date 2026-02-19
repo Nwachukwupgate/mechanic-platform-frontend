@@ -8,16 +8,16 @@ export default function LoadingSpinner({
   className?: string
 }) {
   const sizeClasses = {
-    sm: 'h-6 w-6',
-    md: 'h-12 w-12',
-    lg: 'h-16 w-16',
+    sm: 'h-10 w-10',
+    md: 'h-16 w-16',
+    lg: 'h-20 w-20',
   }
 
   if (variant === 'logo') {
     return (
       <div className={`flex items-center justify-center ${className}`}>
         <img
-          src="/logo.jpeg"
+          src="/logo.png"
           alt=""
           role="presentation"
           className={`${sizeClasses[size]} animate-spin rounded-xl object-cover`}

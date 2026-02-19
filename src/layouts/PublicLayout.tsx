@@ -21,15 +21,15 @@ export default function PublicLayout() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <nav className="bg-white shadow-card border-b border-slate-100 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Link
                 to="/"
                 className="flex items-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <img src="/logo.jpeg" alt="Mechanic Platform" className="h-9 w-9 rounded-xl object-cover" />
-                <span className="text-lg font-semibold text-slate-800">Mechanic Platform</span>
+                <img src="/logo.png" alt="Denicksen Auto" className="h-20 w-20 rounded-xl object-cover" />
+                <span className="text-lg font-semibold text-slate-800">Denicksen Auto</span>
               </Link>
             </div>
 
@@ -165,8 +165,8 @@ export default function PublicLayout() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2">
-                <img src="/logo.jpeg" alt="Mechanic Platform" className="h-8 w-8 rounded-lg object-cover" />
-                <span className="font-semibold text-white">Mechanic Platform</span>
+                <img src="/logo.png" alt="Denicksen Auto" className="h-20 w-20 rounded-xl object-cover" />
+                <span className="font-semibold text-white">Denicksen Auto</span>
               </Link>
             </div>
             <nav className="flex flex-wrap gap-6 text-sm" aria-label="Footer">

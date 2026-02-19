@@ -29,11 +29,11 @@ export default function MechanicLayout() {
       {/* Desktop Top Navbar */}
       <nav className="hidden md:block bg-white shadow-card border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-20">
             <div className="flex items-center gap-8">
               <Link to="/mechanic" className="flex items-center gap-2">
-                <img src="/logo.jpeg" alt="Mechanic Platform" className="h-14 w-14 rounded-xl object-cover" />
-                <span className="font-semibold text-slate-800">Mechanic Platform</span>
+                <img src="/logo.png" alt="Mechanic Platform" className="h-20 w-20 rounded-xl object-cover" />
+                <span className="font-semibold text-slate-800">Denicksen Auto</span>
               </Link>
               <div className="flex gap-1">
                 {navItems.map((item) => {
