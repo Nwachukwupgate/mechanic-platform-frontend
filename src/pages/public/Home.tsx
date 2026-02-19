@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom'
 import { Wrench, MapPin, Clock, Shield, Star, ArrowRight, CheckCircle2 } from 'lucide-react'
 
-// Imagery featuring Black people (Unsplash)
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=900&q=80'
+// Hero: Black mechanic in repair workshop (Unsplash, free). Same as BENEFIT_IMAGES.mechanic for consistency.
+const HERO_IMAGE = 'https://img.freepik.com/premium-photo/african-young-female-car-mechanic-checking-changes-car-air-filter-engine-service-car-garage-black-woman-mechanic-working-car-service-maintenance-workshop_38052-3989.jpg?w=900&q=80'
 const AVATARS = {
   user1: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=96&h=96&fit=crop&crop=face',
   user2: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=96&h=96&fit=crop&crop=face',
   user3: 'https://images.unsplash.com/photo-1615109398623-88346a601842?w=96&h=96&fit=crop&crop=face',
 }
 const BENEFIT_IMAGES = {
-  owner: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&q=80',
-  mechanic: 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=500&q=80',
+  owner: 'https://i.pinimg.com/736x/39/d6/ae/39d6aea163fa7b095ec16b35e615d481.jpg?w=500&q=80',
+  mechanic: 'https://st2.depositphotos.com/1911991/6914/i/450/depositphotos_69143705-stock-photo-auto-mechanic-smiling-and-giving.jpg?w=500&q=80',
   location: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=500&q=80',
   support: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&q=80',
 }
