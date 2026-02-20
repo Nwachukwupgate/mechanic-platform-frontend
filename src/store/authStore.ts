@@ -7,6 +7,8 @@ interface User {
   role: 'USER' | 'MECHANIC' | 'ADMIN'
   firstName?: string
   lastName?: string
+  companyName?: string
+  ownerFullName?: string
 }
 
 interface AuthState {

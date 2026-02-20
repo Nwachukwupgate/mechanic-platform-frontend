@@ -6,6 +6,7 @@ import { connectSocket, getSocket, onQuoteEvents } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { ArrowLeft, CheckCircle2, CreditCard, Banknote, MapPin, MessageCircle, Star, Wrench, X } from 'lucide-react'
 
 const statusStyles: Record<string, string> = {
@@ -185,11 +186,13 @@ export default function BookingDetail() {
       {/* Summary card */}
       <div className="card p-5 mb-6">
         <div className="flex flex-wrap justify-between items-start gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-800">
-              {booking.vehicle?.brand} {booking.vehicle?.model}
-            </h1>
-            <p className="text-slate-600 mt-0.5">{booking.fault?.name}</p>
+          <div className="flex items-start gap-3">
+            <RepairTypeIcon fault={booking.fault} size="lg" />
+            <div>
+              <h1 className="text-xl font-semibold text-slate-800">
+                {booking.vehicle?.brand} {booking.vehicle?.model}
+              </h1>
+              <p className="text-slate-600 mt-0.5">{booking.fault?.name}</p>
             {booking.mechanic && (
               <div className="flex items-center gap-3 mt-3">
                 {booking.mechanic.profile?.avatar ? (
@@ -204,6 +207,7 @@ export default function BookingDetail() {
                 </span>
               </div>
             )}
+            </div>
           </div>
           <span
             className={`px-3 py-1.5 rounded-xl text-sm font-medium ${

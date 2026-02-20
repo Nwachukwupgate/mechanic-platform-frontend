@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { usersAPI, getApiErrorMessage } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import Avatar from '../../components/Avatar'
 
 export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null)
@@ -40,11 +41,19 @@ export default function UserProfile() {
     )
   }
 
+  const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Profile'
+
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Profile</h1>
-      <div className="bg-white rounded-lg shadow p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="flex items-center gap-4 mb-6 sm:mb-8">
+        <Avatar name={fullName} size="lg" ring className="shrink-0" />
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Profile</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{profile?.email}</p>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               First Name
@@ -101,7 +110,7 @@ export default function UserProfile() {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>

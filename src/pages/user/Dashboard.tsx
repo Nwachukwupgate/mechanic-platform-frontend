@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import { bookingsAPI } from '../../services/api'
 import { Car, MapPin, Clock } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import Avatar from '../../components/Avatar'
+import RepairTypeIcon from '../../components/RepairTypeIcon'
 
 export default function UserDashboard() {
+  const { user } = useAuth()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const displayName = user?.firstName || user?.email?.split('@')[0] || 'there'
 
   useEffect(() => {
     bookingsAPI
@@ -27,87 +32,111 @@ export default function UserDashboard() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="space-y-6 sm:space-y-8">
+      {/* Welcome + CTA */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar
+            name={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
+            fallbackLetter={displayName[0]}
+            size="lg"
+            className="shrink-0"
+            ring
+          />
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Hi, {displayName}</h1>
+            <p className="text-sm text-slate-500">Here’s your booking overview.</p>
+          </div>
+        </div>
         <Link
           to="/user/find-mechanics"
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors shrink-0"
         >
           Find Mechanics
         </Link>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Active Bookings</p>
-              <p className="text-2xl font-bold">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-slate-500 text-sm font-medium">Active Bookings</p>
+              <p className="text-2xl sm:text-3xl font-bold tabular-nums text-slate-800 mt-0.5">
                 {bookings.filter((b) => ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'].includes(b.status)).length}
               </p>
             </div>
-            <Clock className="h-8 w-8 text-primary-600" />
+            <Clock className="h-9 w-9 text-primary-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Bookings</p>
-              <p className="text-2xl font-bold">{bookings.length}</p>
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-slate-500 text-sm font-medium">Total Bookings</p>
+              <p className="text-2xl sm:text-3xl font-bold tabular-nums text-slate-800 mt-0.5">{bookings.length}</p>
             </div>
-            <Car className="h-8 w-8 text-accent-600" />
+            <Car className="h-9 w-9 text-accent-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Completed</p>
-              <p className="text-2xl font-bold">
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-slate-500 text-sm font-medium">Completed</p>
+              <p className="text-2xl sm:text-3xl font-bold tabular-nums text-slate-800 mt-0.5">
                 {bookings.filter((b) => ['DONE', 'PAID', 'DELIVERED'].includes(b.status)).length}
               </p>
             </div>
-            <MapPin className="h-8 w-8 text-purple-600" />
+            <MapPin className="h-9 w-9 text-primary-400/80 shrink-0" aria-hidden />
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold">Recent Bookings</h2>
+      {/* Recent Bookings */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Recent Bookings</h2>
         </div>
-        <div className="divide-y">
-          {bookings.slice(0, 5).map((booking) => (
-            <Link
-              key={booking.id}
-              to={`/user/bookings/${booking.id}`}
-              className="block px-6 py-4 hover:bg-gray-50"
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">{booking.vehicle?.brand} {booking.vehicle?.model}</p>
-                  <p className="text-sm text-gray-600">{booking.fault?.name}</p>
+        <div className="divide-y divide-slate-100">
+          {bookings.slice(0, 5).map((booking) => {
+            const mechanic = booking.mechanic
+            const mechanicName = mechanic?.profile?.ownerFullName || mechanic?.companyName || 'Mechanic'
+            return (
+              <Link
+                key={booking.id}
+                to={`/user/bookings/${booking.id}`}
+                className="flex items-center gap-4 px-4 sm:px-6 py-4 active:bg-slate-50 hover:bg-slate-50/80 transition-colors"
+              >
+                <RepairTypeIcon fault={booking.fault} size="md" />
+                <Avatar
+                  src={mechanic?.profile?.avatar}
+                  name={mechanicName}
+                  size="md"
+                  className="shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-800 truncate">
+                    {booking.vehicle?.brand} {booking.vehicle?.model}
+                  </p>
+                  <p className="text-sm text-slate-500 truncate">{booking.fault?.name}</p>
                 </div>
-                <div className="text-right">
-                  <span
-                    className={`px-2 py-1 text-xs rounded ${
-                      booking.status === 'REQUESTED'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : booking.status === 'ACCEPTED'
-                        ? 'bg-primary-100 text-primary-800'
-                        : booking.status === 'IN_PROGRESS'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-accent-100 text-accent-800'
-                    }`}
-                  >
-                    {booking.status}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
+                <span
+                  className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg ${
+                    booking.status === 'REQUESTED'
+                      ? 'bg-amber-100 text-amber-800'
+                      : booking.status === 'ACCEPTED'
+                      ? 'bg-primary-100 text-primary-800'
+                      : booking.status === 'IN_PROGRESS'
+                      ? 'bg-violet-100 text-violet-800'
+                      : 'bg-accent-100 text-accent-800'
+                  }`}
+                >
+                  {booking.status.replace('_', ' ')}
+                </span>
+              </Link>
+            )
+          })}
           {bookings.length === 0 && (
-            <div className="px-6 py-12 text-center text-gray-500">
+            <div className="px-4 sm:px-6 py-12 text-center text-slate-500">
               No bookings yet. Start by finding a mechanic!
             </div>
           )}

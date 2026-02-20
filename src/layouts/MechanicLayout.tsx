@@ -2,11 +2,13 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Home, User, Briefcase, History, Wallet, LogOut } from 'lucide-react'
 import { MapBackground } from '../components/MapBackground'
+import Avatar from '../components/Avatar'
 
 export default function MechanicLayout() {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const displayName = user?.ownerFullName || user?.companyName || user?.firstName || user?.email?.split('@')[0] || 'Mechanic'
 
   const handleLogout = () => {
     logout()
@@ -25,7 +27,23 @@ export default function MechanicLayout() {
 
   return (
     <MapBackground variant="light" className="min-h-screen">
-    <div className="min-h-screen pb-24 md:pb-0">
+    <div className="min-h-screen pb-28 md:pb-0">
+      {/* Mobile: top bar with greeting + avatar */}
+      <header className="md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/80 shadow-sm">
+        <div className="flex items-center justify-between gap-3 h-14 px-4">
+          <Link to="/mechanic" className="flex items-center gap-2 min-w-0">
+            <img src="/logo.png" alt="" className="h-9 w-9 rounded-lg object-cover shrink-0" />
+            <span className="font-semibold text-slate-800 truncate">Denicksen Auto</span>
+          </Link>
+          <Link
+            to="/mechanic/profile"
+            className="flex items-center gap-2.5 min-w-0 shrink-0 py-1.5 pr-1 rounded-xl active:bg-slate-100"
+          >
+            <span className="text-sm text-slate-600 truncate max-w-[120px]">Hi, {displayName}</span>
+            <Avatar name={`${user?.ownerFullName ?? user?.companyName ?? ''} ${user?.firstName ?? ''}`.trim()} fallbackLetter={displayName[0]} size="sm" className="shrink-0" />
+          </Link>
+        </div>
+      </header>
       {/* Desktop Top Navbar */}
       <nav className="hidden md:block bg-white shadow-card border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,8 +85,8 @@ export default function MechanicLayout() {
       </nav>
 
       {/* Mobile Bottom Navbar — icons with text labels */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-50 pb-safe">
-        <div className="flex items-stretch justify-around h-20 px-1">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-50 pb-safe">
+        <div className="flex items-stretch justify-around h-16 px-2 gap-0.5">
           {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.path)
@@ -76,29 +94,29 @@ export default function MechanicLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-2 rounded-lg transition-colors ${
+                className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-3 rounded-xl transition-colors touch-manipulation ${
                   active
                     ? 'text-primary-600 bg-primary-50'
-                    : 'text-slate-500 hover:text-slate-700'
+                    : 'text-slate-500 active:bg-slate-100'
                 }`}
               >
-                <Icon className="h-6 w-6 shrink-0" />
-                <span className="text-[10px] font-medium truncate max-w-full px-0.5">{item.label}</span>
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
+                <span className="text-[10px] sm:text-xs font-medium truncate max-w-full">{item.label}</span>
               </Link>
             )
           })}
           <button
             type="button"
             onClick={handleLogout}
-            className="flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-2 text-slate-500 active:text-slate-700"
+            className="flex flex-col items-center justify-center flex-1 min-w-0 gap-1 py-3 text-slate-500 active:bg-slate-100 rounded-xl touch-manipulation"
           >
-            <LogOut className="h-6 w-6 shrink-0" />
-            <span className="text-[10px] font-medium">Log out</span>
+            <LogOut className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-medium">Log out</span>
           </button>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 md:py-8">
         <Outlet />
       </main>
     </div>
