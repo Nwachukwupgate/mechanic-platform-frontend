@@ -17,7 +17,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 
 const STATUS_BADGE: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
-  ACCEPTED: 'bg-blue-100 text-blue-800',
+  ACCEPTED: 'bg-primary-100 text-primary-800',
   IN_PROGRESS: 'bg-violet-100 text-violet-800',
   DONE: 'bg-emerald-100 text-emerald-800',
   PAID: 'bg-slate-100 text-slate-700',
@@ -124,7 +124,7 @@ export default function MechanicDashboard() {
               </p>
               <p className="mt-0.5 text-sm text-slate-500">Active</p>
             </div>
-            <Briefcase className="h-8 w-8 text-blue-500/80" aria-hidden />
+            <Briefcase className="h-8 w-8 text-primary-500/80" aria-hidden />
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-4">

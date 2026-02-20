@@ -54,7 +54,7 @@ export default function MechanicBookings() {
         <button
           onClick={() => setFilter('ALL')}
           className={`px-4 py-2 rounded-md ${
-            filter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            filter === 'ALL' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'
           }`}
         >
           All
@@ -62,7 +62,7 @@ export default function MechanicBookings() {
         <button
           onClick={() => setFilter('REQUESTED')}
           className={`px-4 py-2 rounded-md ${
-            filter === 'REQUESTED' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            filter === 'REQUESTED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'
           }`}
         >
           Pending
@@ -70,7 +70,7 @@ export default function MechanicBookings() {
         <button
           onClick={() => setFilter('ACCEPTED')}
           className={`px-4 py-2 rounded-md ${
-            filter === 'ACCEPTED' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            filter === 'ACCEPTED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'
           }`}
         >
           Accepted
@@ -78,7 +78,7 @@ export default function MechanicBookings() {
         <button
           onClick={() => setFilter('IN_PROGRESS')}
           className={`px-4 py-2 rounded-md ${
-            filter === 'IN_PROGRESS' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            filter === 'IN_PROGRESS' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'
           }`}
         >
           In Progress
@@ -111,10 +111,10 @@ export default function MechanicBookings() {
                     booking.status === 'REQUESTED'
                       ? 'bg-yellow-100 text-yellow-800'
                       : booking.status === 'ACCEPTED'
-                      ? 'bg-blue-100 text-blue-800'
+                      ? 'bg-primary-100 text-primary-800'
                       : booking.status === 'IN_PROGRESS'
                       ? 'bg-purple-100 text-purple-800'
-                      : 'bg-green-100 text-green-800'
+                      : 'bg-accent-100 text-accent-800'
                   }`}
                 >
                   {booking.status}

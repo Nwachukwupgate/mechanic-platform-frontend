@@ -67,7 +67,7 @@ export default function Home() {
                 </Link>
                 <Link
                   to="/for-mechanics"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 border-2 border-primary-500 text-primary-700 rounded-xl font-semibold hover:bg-primary-50 transition-colors"
                 >
                   For mechanics
                 </Link>
@@ -192,7 +192,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-3 gap-8 text-center">
             <div>
-              <p className="text-4xl md:text-5xl font-bold text-primary-600 tabular-nums">89%</p>
+              <p className="text-4xl md:text-5xl font-bold text-accent-600 tabular-nums">89%</p>
               <p className="mt-2 text-sm text-slate-600">of users find a mechanic and complete a booking</p>
             </div>
             <div>
@@ -200,7 +200,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-slate-600">people from different regions already use the platform</p>
             </div>
             <div>
-              <p className="text-4xl md:text-5xl font-bold text-primary-600 tabular-nums">4.6 out of 5</p>
+              <p className="text-4xl md:text-5xl font-bold text-accent-600 tabular-nums">4.6 out of 5</p>
               <p className="mt-2 text-sm text-slate-600 flex items-center justify-center gap-1">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> average rating from real feedback
               </p>
@@ -255,7 +255,7 @@ export default function Home() {
               <div key={i} className="border border-slate-200 rounded-xl p-6 bg-slate-50/30">
                 <div className="flex gap-1 mb-4">
                   {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <Star key={j} className="h-4 w-4 fill-accent-500 text-accent-500" />
                   ))}
                 </div>
                 <blockquote className="text-slate-700 text-sm leading-relaxed mb-6">

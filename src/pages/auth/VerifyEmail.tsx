@@ -38,23 +38,23 @@ export default function VerifyEmail() {
       <div
         className={`rounded-lg p-6 text-center ${
           status === 'success'
-            ? 'bg-green-50 border border-green-200'
+            ? 'bg-primary-50 border border-primary-200'
             : status === 'error'
             ? 'bg-red-50 border border-red-200'
-            : 'bg-blue-50 border border-blue-200'
+            : 'bg-primary-50 border border-primary-200'
         }`}
       >
         {status === 'loading' && (
           <>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-blue-700">Verifying your email...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-primary-700">Verifying your email...</p>
           </>
         )}
         {status === 'success' && (
           <>
-            <div className="text-green-600 text-4xl mb-4">✓</div>
-            <h2 className="text-xl font-semibold text-green-800 mb-2">Email Verified!</h2>
-            <p className="text-green-700">{message}</p>
+            <div className="text-primary-600 text-4xl mb-4">✓</div>
+            <h2 className="text-xl font-semibold text-primary-800 mb-2">Email Verified!</h2>
+            <p className="text-primary-700">{message}</p>
           </>
         )}
         {status === 'error' && (

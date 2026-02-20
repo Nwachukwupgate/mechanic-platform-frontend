@@ -309,7 +309,7 @@ export default function MechanicProfile() {
             onClick={toggleAvailability}
             className={`px-4 py-2 rounded-md ${
               availability
-                ? 'bg-green-100 text-green-800'
+                ? 'bg-primary-100 text-primary-800'
                 : 'bg-gray-100 text-gray-800'
             }`}
           >
@@ -378,7 +378,7 @@ export default function MechanicProfile() {
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={avatarUploading}
-                    className="text-sm text-blue-600 hover:underline disabled:opacity-50"
+                    className="text-sm text-primary-600 hover:underline disabled:opacity-50"
                   >
                     {avatarUploading ? 'Uploading…' : 'Change photo'}
                   </button>
@@ -410,7 +410,7 @@ export default function MechanicProfile() {
             <input
               type="tel"
               {...register('phone')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div>
@@ -421,7 +421,7 @@ export default function MechanicProfile() {
               type="text"
               placeholder="e.g. 5 years, 10+ years"
               {...register('experience')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div>
@@ -435,7 +435,7 @@ export default function MechanicProfile() {
                     type="checkbox"
                     checked={watchedVehicleTypes.includes(v)}
                     onChange={() => toggleArrayValue('vehicleTypes', v)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="text-sm">{v}</span>
                 </label>
@@ -454,7 +454,7 @@ export default function MechanicProfile() {
                     type="checkbox"
                     checked={watchedBrands.includes(b)}
                     onChange={() => toggleArrayValue('brands', b)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="text-sm">{b}</span>
                 </label>
@@ -469,7 +469,7 @@ export default function MechanicProfile() {
               type="text"
               placeholder="Full workshop address"
               {...register('workshopAddress')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <p className="text-xs text-gray-500 mt-1 mb-2">
               Set your workshop coordinates so you appear in “Find Mechanics” when users search nearby.
@@ -485,7 +485,7 @@ export default function MechanicProfile() {
                 {workshopLocationLoading ? 'Getting location…' : 'Use my location (at workshop)'}
               </button>
               {workshopLocation && !workshopLocationLoading && (
-                <span className="text-sm text-green-700">
+                <span className="text-sm text-primary-700">
                   ✓ {workshopAddressLoading
                     ? 'Getting address…'
                     : workshopLocationAddress || 'Location set'}
@@ -516,7 +516,7 @@ export default function MechanicProfile() {
                   href={certificateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 underline truncate flex-1"
+                  className="text-primary-600 underline truncate flex-1"
                 >
                   View certificate
                 </a>
@@ -549,7 +549,7 @@ export default function MechanicProfile() {
             <input
               type="text"
               {...register('nin')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div className="border-t pt-4 mt-4">
@@ -562,7 +562,7 @@ export default function MechanicProfile() {
                 <input
                   type="text"
                   {...register('guarantorName')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -572,7 +572,7 @@ export default function MechanicProfile() {
                 <input
                   type="tel"
                   {...register('guarantorPhone')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -582,7 +582,7 @@ export default function MechanicProfile() {
                 <input
                   type="text"
                   {...register('guarantorAddress')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -599,7 +599,7 @@ export default function MechanicProfile() {
                     type="checkbox"
                     checked={watchedExpertise.includes(e)}
                     onChange={() => toggleArrayValue('expertise', e)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="text-sm">{e}</span>
                 </label>
@@ -613,7 +613,7 @@ export default function MechanicProfile() {
             <input
               type="text"
               {...register('address')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div className="grid md:grid-cols-2 gap-4">
@@ -624,7 +624,7 @@ export default function MechanicProfile() {
               <input
                 type="text"
                 {...register('city')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <div>
@@ -634,7 +634,7 @@ export default function MechanicProfile() {
               <input
                 type="text"
                 {...register('state')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -645,7 +645,7 @@ export default function MechanicProfile() {
             <input
               type="text"
               {...register('zipCode')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div>
@@ -654,14 +654,14 @@ export default function MechanicProfile() {
             </label>
             <textarea
               {...register('bio')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={4}
             />
           </div>
           <button
             type="submit"
             disabled={profileUpdating}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {profileUpdating ? (
               <>

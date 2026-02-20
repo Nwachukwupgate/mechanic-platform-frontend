@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Menu, X } from 'lucide-react'
+import ChatSupport from '../components/ChatSupport'
 
 export default function PublicLayout() {
   const { isAuthenticated, user, logout } = useAuth()
@@ -183,6 +184,7 @@ export default function PublicLayout() {
           </div>
         </div>
       </footer>
+      <ChatSupport />
     </div>
   )
 }

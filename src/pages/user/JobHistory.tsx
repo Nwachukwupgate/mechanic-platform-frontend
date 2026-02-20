@@ -65,7 +65,7 @@ export default function JobHistory() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                  <span className="px-2 py-1 text-xs rounded bg-primary-100 text-primary-800">
                     {booking.status}
                   </span>
                   <p className="text-xs text-gray-500 mt-1">

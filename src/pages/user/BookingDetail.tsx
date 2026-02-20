@@ -10,7 +10,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, Banknote, MapPin, MessageCircle, S
 
 const statusStyles: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
-  ACCEPTED: 'bg-blue-100 text-blue-800',
+  ACCEPTED: 'bg-primary-100 text-primary-800',
   IN_PROGRESS: 'bg-violet-100 text-violet-800',
   DONE: 'bg-emerald-100 text-emerald-800',
   PAID: 'bg-slate-100 text-slate-800',

@@ -77,9 +77,9 @@ export default function Register() {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center shadow-md">
-            <h2 className="text-xl font-semibold text-green-800 mb-2">Registration Successful!</h2>
-            <p className="text-green-700">
+          <div className="bg-primary-50 border border-primary-200 rounded-xl p-6 text-center shadow-md">
+            <h2 className="text-xl font-semibold text-primary-800 mb-2">Registration Successful!</h2>
+            <p className="text-primary-700">
               Please check your email to verify your account before logging in.
             </p>
           </div>
@@ -101,7 +101,7 @@ export default function Register() {
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as 'USER' | 'MECHANIC')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="USER">User</option>
             <option value="MECHANIC">Mechanic</option>
@@ -123,7 +123,7 @@ export default function Register() {
               <input
                 type="text"
                 {...userForm.register('firstName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {userForm.formState.errors.firstName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -139,7 +139,7 @@ export default function Register() {
               <input
                 type="text"
                 {...userForm.register('lastName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {userForm.formState.errors.lastName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -155,7 +155,7 @@ export default function Register() {
               <input
                 type="email"
                 {...userForm.register('email')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {userForm.formState.errors.email && (
                 <p className="mt-1 text-sm text-red-600">
@@ -171,7 +171,7 @@ export default function Register() {
               <input
                 type="date"
                 {...userForm.register('dateOfBirth')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {userForm.formState.errors.dateOfBirth && (
                 <p className="mt-1 text-sm text-red-600">
@@ -188,12 +188,12 @@ export default function Register() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...userForm.register('password')}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -209,7 +209,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={userForm.formState.isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {userForm.formState.isSubmitting ? (
                 <>
@@ -230,7 +230,7 @@ export default function Register() {
               <input
                 type="text"
                 {...mechanicForm.register('companyName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {mechanicForm.formState.errors.companyName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -246,7 +246,7 @@ export default function Register() {
               <input
                 type="text"
                 {...mechanicForm.register('ownerFullName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {mechanicForm.formState.errors.ownerFullName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -262,7 +262,7 @@ export default function Register() {
               <input
                 type="email"
                 {...mechanicForm.register('email')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               {mechanicForm.formState.errors.email && (
                 <p className="mt-1 text-sm text-red-600">
@@ -279,12 +279,12 @@ export default function Register() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...mechanicForm.register('password')}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -300,7 +300,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={mechanicForm.formState.isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {mechanicForm.formState.isSubmitting ? (
                 <>
@@ -316,7 +316,7 @@ export default function Register() {
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/login" className="text-primary-600 hover:underline">
             Login
           </Link>
         </p>

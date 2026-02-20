@@ -214,7 +214,7 @@ export default function FindMechanics() {
               {locationLoading ? 'Getting location…' : 'Use my location'}
             </button>
             {userLocation && !locationLoading && (
-              <span className="text-sm text-green-700">
+              <span className="text-sm text-primary-700">
                 ✓ {userLocationAddress || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
               </span>
             )}
@@ -242,7 +242,7 @@ export default function FindMechanics() {
             type="button"
             onClick={searchMechanics}
             disabled={searching}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {searching ? (
               <>
@@ -375,7 +375,7 @@ export default function FindMechanics() {
                 {mechanic.expertise.map((exp: string) => (
                   <span
                     key={exp}
-                    className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                    className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded"
                   >
                     {exp}
                   </span>

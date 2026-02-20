@@ -130,9 +130,9 @@ export function MechanicsMap({
             icon={{
               path: google.maps.SymbolPath.CIRCLE,
               scale: 10,
-              fillColor: '#3b82f6',
+              fillColor: '#086C40',
               fillOpacity: 1,
-              strokeColor: '#1d4ed8',
+              strokeColor: '#065732',
               strokeWeight: 2,
             }}
           />
@@ -146,9 +146,9 @@ export function MechanicsMap({
             icon={{
               path: google.maps.SymbolPath.CIRCLE,
               scale: 12,
-              fillColor: '#22c55e',
+              fillColor: '#E68324',
               fillOpacity: 1,
-              strokeColor: '#15803d',
+              strokeColor: '#c96a1a',
               strokeWeight: 2,
             }}
           >
@@ -185,7 +185,7 @@ export function MechanicsMap({
                       type="button"
                       onClick={() => onRequestService(m.mechanic.id)}
                       disabled={requestingMechanicId === m.mechanic.id}
-                      className="w-full mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="w-full mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {requestingMechanicId === m.mechanic.id ? (
                         <>

@@ -85,7 +85,7 @@ export default function UserVehicles() {
         <h1 className="text-3xl font-bold">My Vehicles</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
         >
           <Plus className="h-4 w-4" />
           <span>Add Vehicle</span>
@@ -182,7 +182,7 @@ export default function UserVehicles() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <>

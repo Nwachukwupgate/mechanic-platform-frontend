@@ -32,7 +32,7 @@ export default function UserDashboard() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <Link
           to="/user/find-mechanics"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
         >
           Find Mechanics
         </Link>
@@ -47,7 +47,7 @@ export default function UserDashboard() {
                 {bookings.filter((b) => ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'].includes(b.status)).length}
               </p>
             </div>
-            <Clock className="h-8 w-8 text-blue-600" />
+            <Clock className="h-8 w-8 text-primary-600" />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
@@ -56,7 +56,7 @@ export default function UserDashboard() {
               <p className="text-gray-600 text-sm">Total Bookings</p>
               <p className="text-2xl font-bold">{bookings.length}</p>
             </div>
-            <Car className="h-8 w-8 text-green-600" />
+            <Car className="h-8 w-8 text-accent-600" />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
@@ -94,10 +94,10 @@ export default function UserDashboard() {
                       booking.status === 'REQUESTED'
                         ? 'bg-yellow-100 text-yellow-800'
                         : booking.status === 'ACCEPTED'
-                        ? 'bg-blue-100 text-blue-800'
+                        ? 'bg-primary-100 text-primary-800'
                         : booking.status === 'IN_PROGRESS'
                         ? 'bg-purple-100 text-purple-800'
-                        : 'bg-green-100 text-green-800'
+                        : 'bg-accent-100 text-accent-800'
                     }`}
                   >
                     {booking.status}
