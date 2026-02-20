@@ -161,24 +161,24 @@ export default function PublicLayout() {
       <main className="flex-grow">
         <Outlet />
       </main>
-      <footer className="bg-slate-800 text-slate-200 py-12 mt-auto">
+      <footer className="bg-gray-200 text-slate-800 py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2">
                 <img src="/logo.png" alt="Denicksen Auto" className="h-20 w-20 rounded-xl object-cover" />
-                <span className="font-semibold text-white">Denicksen Auto</span>
+                <span className="font-semibold text-slate-800">Denicksen Auto</span>
               </Link>
             </div>
-            <nav className="flex flex-wrap gap-6 text-sm" aria-label="Footer">
-              <Link to="/for-users" className="text-slate-300 hover:text-white transition-colors">For Users</Link>
-              <Link to="/for-mechanics" className="text-slate-300 hover:text-white transition-colors">For Mechanics</Link>
-              <Link to="/about" className="text-slate-300 hover:text-white transition-colors">About</Link>
-              <Link to="/faq" className="text-slate-300 hover:text-white transition-colors">FAQ</Link>
+            <nav className="flex flex-wrap gap-6 text-sm font-medium" aria-label="Footer">
+              <Link to="/for-users" className="text-slate-700 hover:text-slate-900 transition-colors">For Users</Link>
+              <Link to="/for-mechanics" className="text-slate-700 hover:text-slate-900 transition-colors">For Mechanics</Link>
+              <Link to="/about" className="text-slate-700 hover:text-slate-900 transition-colors">About</Link>
+              <Link to="/faq" className="text-slate-700 hover:text-slate-900 transition-colors">FAQ</Link>
             </nav>
           </div>
-          <div className="mt-8 pt-8 border-t border-slate-700">
-            <p className="text-sm text-slate-400">
+          <div className="mt-8 pt-8 border-t border-gray-300">
+            <p className="text-sm text-slate-600">
               &copy; {new Date().getFullYear()} Mechanic Platform. All rights reserved.
             </p>
           </div>

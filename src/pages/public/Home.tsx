@@ -188,21 +188,26 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      <section className="py-16 md:py-24 bg-white" aria-labelledby="stats">
+      <section className="py-12 sm:py-16 md:py-24 bg-white" aria-labelledby="stats">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-3 gap-8 text-center">
-            <div>
-              <p className="text-4xl md:text-5xl font-bold text-accent-600 tabular-nums">89%</p>
-              <p className="mt-2 text-sm text-slate-600">of users find a mechanic and complete a booking</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+            <div className="flex flex-col items-center text-center px-4 py-6 sm:py-0 rounded-2xl bg-slate-50/80 sm:bg-transparent border border-slate-100 sm:border-0">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-accent-600 tabular-nums tracking-tight">89%</p>
+              <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-xs mx-auto">
+                of users find a mechanic and complete a booking
+              </p>
             </div>
-            <div>
-              <p className="text-4xl md:text-5xl font-bold text-primary-600 tabular-nums">1,200+</p>
-              <p className="mt-2 text-sm text-slate-600">people from different regions already use the platform</p>
+            <div className="flex flex-col items-center text-center px-4 py-6 sm:py-0 rounded-2xl bg-slate-50/80 sm:bg-transparent border border-slate-100 sm:border-0">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600 tabular-nums tracking-tight">1,200+</p>
+              <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-xs mx-auto">
+                people from different regions already use the platform
+              </p>
             </div>
-            <div>
-              <p className="text-4xl md:text-5xl font-bold text-accent-600 tabular-nums">4.6 out of 5</p>
-              <p className="mt-2 text-sm text-slate-600 flex items-center justify-center gap-1">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> average rating from real feedback
+            <div className="flex flex-col items-center text-center px-4 py-6 sm:py-0 rounded-2xl bg-slate-50/80 sm:bg-transparent border border-slate-100 sm:border-0">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-accent-600 tabular-nums tracking-tight">4.6 out of 5</p>
+              <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-xs mx-auto flex flex-wrap items-center justify-center gap-1.5">
+                <Star className="h-4 w-4 fill-accent-500 text-accent-500 shrink-0" aria-hidden />
+                <span>average rating from real feedback</span>
               </p>
             </div>
           </div>
