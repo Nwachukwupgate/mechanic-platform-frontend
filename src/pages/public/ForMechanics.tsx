@@ -11,7 +11,7 @@ export default function ForMechanics() {
           <ul className="list-disc list-inside space-y-2">
             <li>Get matched with customers based on location and expertise</li>
             <li>Receive job requests from verified users</li>
-            <li>Chat with customers in real-time</li>
+            <li>Chat with customers in real time</li>
             <li>Update job status and provide cost estimates</li>
             <li>Build your reputation with ratings and reviews</li>
             <li>Manage your availability and profile</li>

@@ -3,9 +3,10 @@ import { Wrench, MapPin, Clock, Shield, Star, ArrowRight, CheckCircle2 } from 'l
 
 // Hero: Black mechanic in repair workshop (Unsplash, free). Same as BENEFIT_IMAGES.mechanic for consistency.
 const HERO_IMAGE = 'https://img.freepik.com/premium-photo/african-young-female-car-mechanic-checking-changes-car-air-filter-engine-service-car-garage-black-woman-mechanic-working-car-service-maintenance-workshop_38052-3989.jpg?w=900&q=80'
+// Local testimonial photos: add testimony.jpeg and IMG_0091.HEIC to public/ (HEIC may need converting to JPG for some browsers)
 const AVATARS = {
-  user1: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=96&h=96&fit=crop&crop=face',
-  user2: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=96&h=96&fit=crop&crop=face',
+  livinus: '/testimony.jpeg',
+  nwachukwu: '/user.jpeg',
   user3: 'https://images.unsplash.com/photo-1615109398623-88346a601842?w=96&h=96&fit=crop&crop=face',
 }
 const BENEFIT_IMAGES = {
@@ -16,7 +17,7 @@ const BENEFIT_IMAGES = {
 }
 
 const FEATURES = [
-  { title: 'Flexible booking', desc: 'Choose a time that works for you. No rigid schedules, coordinate directly with your mechanic.', Icon: Clock },
+  { title: 'Flexible booking', desc: 'Choose a time that works for you. No rigid schedules, Correlate directly with your mechanic.', Icon: Clock },
   { title: 'See mechanics near you', desc: 'View verified mechanics on a map or list. Compare location and expertise before you book.', Icon: MapPin },
   { title: 'Real time chat', desc: 'Message your mechanic, get updates, and clarify details in one place. No back and forth calls.', Icon: Shield },
   { title: 'Verified & rated', desc: 'Every mechanic is verified. Read real reviews from other customers before you decide.', Icon: Wrench },
@@ -30,9 +31,9 @@ const STEPS = [
 ]
 
 const TESTIMONIALS = [
-  { quote: 'Found a mechanic the same day. He came to my place, fixed the brake issue, and the price was fair. No more garage runaround.', name: 'James O.', role: 'Lagos', avatar: AVATARS.user1, rating: 5 },
-  { quote: 'I can compare quotes from different mechanics and choose who fits my budget. The chat feature made coordination so easy.', name: 'Amara N.', role: 'Abuja', avatar: AVATARS.user2, rating: 5 },
-  { quote: 'As a mechanic, I get serious jobs and get paid on time. The platform handles the trust side so I can focus on the work.', name: 'Chidi M.', role: 'Mechanic partner', avatar: AVATARS.user3, rating: 5 },
+  { quote: 'Found a mechanic the same day. He came to my place, fixed the brake issue, and the price was fair. No more garage runaround.', name: 'Livinus Deenor', role: 'Port Harcourt, car owner', avatar: AVATARS.livinus, rating: 5 },
+  { quote: 'As a mechanic, I get serious jobs and get paid on time. The platform handles the trust side so I can focus on the work.', name: 'Nwachukwu Promise', role: 'Port Harcourt, mechanic', avatar: AVATARS.nwachukwu, rating: 5 },
+  { quote: 'I can compare quotes from different mechanics and choose who fits my budget. The chat feature made coordination so easy.', name: 'Amara N.', role: 'Abuja', avatar: AVATARS.user3, rating: 5 },
 ]
 
 const OUTCOMES = [
@@ -199,7 +200,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-slate-600">people from different regions already use the platform</p>
             </div>
             <div>
-              <p className="text-4xl md:text-5xl font-bold text-primary-600 tabular-nums">4.6/5</p>
+              <p className="text-4xl md:text-5xl font-bold text-primary-600 tabular-nums">4.6 out of 5</p>
               <p className="mt-2 text-sm text-slate-600 flex items-center justify-center gap-1">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> average rating from real feedback
               </p>

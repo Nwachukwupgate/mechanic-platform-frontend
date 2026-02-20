@@ -24,7 +24,7 @@ export default function About() {
             <p className="text-slate-600 leading-relaxed">
               Mechanic Platform was built to fix a simple problem: finding a trustworthy mechanic is hard. 
               We bring transparency to car repairs by letting you compare mechanics, see real ratings, get quotes in naira, 
-              and chat directly—so you know exactly what you’re paying for and who’s doing the work.
+              and chat directly, so you know exactly what you’re paying for and who’s doing the work.
             </p>
             <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">What we do</h2>
             <p className="text-slate-600 leading-relaxed">
@@ -45,7 +45,7 @@ export default function About() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { Icon: Shield, title: 'Trust', desc: 'Every mechanic is verified. Every job can be reviewed.' },
-              { Icon: Target, title: 'Transparency', desc: 'Clear quotes in naira and real-time updates.' },
+              { Icon: Target, title: 'Transparency', desc: 'Clear quotes in naira and real time updates.' },
               { Icon: Wrench, title: 'Quality', desc: 'We focus on skilled mechanics and good outcomes.' },
               { Icon: Heart, title: 'Simplicity', desc: 'Book, chat, and pay in one place.' },
             ].map(({ Icon, title, desc }) => (

@@ -12,7 +12,7 @@ export default function ForUsers() {
             <li>Register and manage your vehicles</li>
             <li>Describe your vehicle issues with guided questions</li>
             <li>Find mechanics based on location and expertise</li>
-            <li>Chat with mechanics in real-time</li>
+            <li>Chat with mechanics in real time</li>
             <li>Track job progress from start to finish</li>
             <li>Rate and review mechanics after service</li>
             <li>View your complete job history</li>
