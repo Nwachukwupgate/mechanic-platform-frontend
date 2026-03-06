@@ -26,7 +26,7 @@ const FEATURES = [
 const STEPS = [
   { num: 1, title: 'Add your vehicle', desc: 'Register your car and describe the issue. We match you with mechanics who specialise in your vehicle and problem.' },
   { num: 2, title: 'Find and compare', desc: 'See verified mechanics nearby on a map or list. Compare quotes in naira and choose who to book.' },
-  { num: 3, title: 'Book and chat', desc: 'Confirm your booking and coordinate via in app chat. Track status in real time.' },
+  { num: 3, title: 'Book and chat', desc: 'Confirm your booking and correlate via in app chat. Track status in real time.' },
   { num: 4, title: 'Pay and rate', desc: 'Pay in naira when the job is done. Rate and review to help the community.' },
 ]
 
