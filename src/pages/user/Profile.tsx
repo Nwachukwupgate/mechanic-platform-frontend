@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { Trash2 } from 'lucide-react'
 import { usersAPI, getApiErrorMessage } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Avatar from '../../components/Avatar'
+import { DeleteAccountSheet } from '../../components/DeleteAccountSheet'
 
 export default function UserProfile() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteSheetOpen, setDeleteSheetOpen] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const { register, handleSubmit, setValue, reset } = useForm()
 
   useEffect(() => {
@@ -25,11 +33,29 @@ export default function UserProfile() {
 
   const onSubmit = async (data: any) => {
     try {
+      setSubmitting(true)
       await usersAPI.updateProfile(data)
       toast.success('Profile updated successfully')
       reset(data)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to update profile'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteAccount = async (payload: { reasons: string[]; otherReason?: string }) => {
+    setDeletingAccount(true)
+    try {
+      await usersAPI.deleteAccount(payload)
+      setDeleteSheetOpen(false)
+      toast.success('Your account has been deleted')
+      logout()
+      navigate('/')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Could not delete account'))
+    } finally {
+      setDeletingAccount(false)
     }
   }
 
@@ -123,6 +149,29 @@ export default function UserProfile() {
           </button>
         </form>
       </div>
+
+      <div className="mt-8 rounded-xl border border-red-100 bg-red-50/80 p-4 sm:p-5">
+        <h2 className="text-sm font-semibold text-slate-800 mb-1">Account</h2>
+        <p className="text-sm text-slate-600 mb-4">
+          Permanently delete your account and data. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={() => setDeleteSheetOpen(true)}
+          disabled={deletingAccount}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4 shrink-0" />
+          {deletingAccount ? 'Deleting…' : 'Delete account'}
+        </button>
+      </div>
+
+      <DeleteAccountSheet
+        open={deleteSheetOpen}
+        onClose={() => setDeleteSheetOpen(false)}
+        onConfirm={handleDeleteAccount}
+        loading={deletingAccount}
+      />
     </div>
   )
 }

@@ -138,6 +138,8 @@ export const authAPI = {
 export const usersAPI = {
   getProfile: () => api.get('/users/me'),
   updateProfile: (data: any) => api.put('/users/me/profile', data),
+  deleteAccount: (data: { reasons: string[]; otherReason?: string }) =>
+    api.post<{ deleted: boolean }>('/users/me/delete-account', data),
 }
 
 // Mechanics API
@@ -170,6 +172,7 @@ export const mechanicsAPI = {
     api.put(`/mechanics/me/bank-accounts/${accountId}`, data),
   setDefaultBankAccount: (accountId: string) => api.put(`/mechanics/me/bank-accounts/${accountId}/default`),
   deleteBankAccount: (accountId: string) => api.delete(`/mechanics/me/bank-accounts/${accountId}`),
+  deleteAccount: () => api.post<{ deleted: boolean }>('/mechanics/me/delete-account'),
 }
 
 // Vehicles API

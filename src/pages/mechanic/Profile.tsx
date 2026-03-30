@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { mechanicsAPI, getApiErrorMessage, isPropertyNotAllowedError } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 import { reverseGeocode } from '../../services/geocoding'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { MECHANIC_VEHICLE_TYPES, EXPERTISE_OPTIONS, CAR_BRANDS } from '../../constants/vehicles'
-import { Upload, FileText, X, MapPin, User } from 'lucide-react'
+import { Upload, FileText, X, MapPin, User, Trash2 } from 'lucide-react'
 
 type ProfileForm = {
   phone: string
@@ -26,6 +28,8 @@ type ProfileForm = {
 }
 
 export default function MechanicProfile() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [availability, setAvailability] = useState(true)
@@ -40,6 +44,8 @@ export default function MechanicProfile() {
   const [workshopLocationError, setWorkshopLocationError] = useState<string | null>(null)
   const [profileUpdating, setProfileUpdating] = useState(false)
   const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const workshopLocationRef = useRef<{ lat: number; lng: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -216,8 +222,24 @@ export default function MechanicProfile() {
     )
   }
 
+  const confirmDeleteAccount = async () => {
+    setDeletingAccount(true)
+    try {
+      await mechanicsAPI.deleteAccount()
+      setDeleteConfirmOpen(false)
+      toast.success('Your workshop account has been removed')
+      logout()
+      navigate('/')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Could not delete account'))
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
   const onSubmit = async (data: ProfileForm) => {
     try {
+      setProfileUpdating(true)
       const latestLoc = workshopLocationRef.current ?? workshopLocation
       const payload = {
         phone: data.phone,
@@ -674,6 +696,60 @@ export default function MechanicProfile() {
           </button>
         </form>
       </div>
+
+      <div className="mt-8 rounded-lg border border-red-100 bg-red-50/90 p-6">
+        <h2 className="text-sm font-semibold text-slate-800 mb-1">Account</h2>
+        <p className="text-sm text-slate-600 mb-4">
+          Need to leave the platform? Your profile and bank details will be removed. Past bookings and ratings may
+          be kept for records. You will be signed out. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={() => setDeleteConfirmOpen(true)}
+          disabled={deletingAccount}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4 shrink-0" />
+          {deletingAccount ? 'Deleting…' : 'Delete account'}
+        </button>
+      </div>
+
+      {deleteConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Delete your account?</h3>
+            <p className="text-sm text-slate-600 leading-relaxed mb-6">
+              Your profile and bank details will be removed. Past bookings and ratings may be kept for records. You
+              will be signed out. This cannot be undone.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deletingAccount}
+                className="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteAccount()}
+                disabled={deletingAccount}
+                className="px-4 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60 inline-flex items-center justify-center gap-2"
+              >
+                {deletingAccount ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Deleting…
+                  </>
+                ) : (
+                  'Delete account'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
