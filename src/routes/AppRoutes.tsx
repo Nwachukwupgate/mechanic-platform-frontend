@@ -7,6 +7,8 @@ import ForUsers from '../pages/public/ForUsers'
 import ForMechanics from '../pages/public/ForMechanics'
 import About from '../pages/public/About'
 import FAQ from '../pages/public/FAQ'
+import PrivacyPolicy from '../pages/public/PrivacyPolicy'
+import NotFound from '../pages/public/NotFound'
 
 // Auth pages
 import Login from '../pages/auth/Login'
@@ -73,6 +75,7 @@ export function AppRoutes() {
         <Route path="for-mechanics" element={<ForMechanics />} />
         <Route path="about" element={<About />} />
         <Route path="faq" element={<FAQ />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
         <Route
           path="login"
           element={
@@ -120,8 +123,10 @@ export function AppRoutes() {
         <Route path="wallet" element={<MechanicWallet />} />
       </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 404 — must be last; uses public layout (nav + footer) */}
+      <Route path="*" element={<PublicLayout />}>
+        <Route path="*" element={<NotFound />} />
+      </Route>
     </Routes>
   )
 }

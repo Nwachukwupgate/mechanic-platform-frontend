@@ -175,6 +175,7 @@ export default function PublicLayout() {
               <Link to="/for-mechanics" className="text-slate-700 hover:text-slate-900 transition-colors">For Mechanics</Link>
               <Link to="/about" className="text-slate-700 hover:text-slate-900 transition-colors">About</Link>
               <Link to="/faq" className="text-slate-700 hover:text-slate-900 transition-colors">FAQ</Link>
+              <Link to="/privacy" className="text-slate-700 hover:text-slate-900 transition-colors">Privacy</Link>
             </nav>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-300">
