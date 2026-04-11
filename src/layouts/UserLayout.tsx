@@ -30,11 +30,11 @@ export default function UserLayout() {
     <MapBackground variant="light" className="min-h-screen">
     <div className="min-h-screen pb-28 md:pb-0">
       {/* Mobile: top bar with greeting + avatar */}
-      <header className="md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/80 shadow-sm">
+      <header className="md:hidden sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
         <div className="flex items-center justify-between gap-3 h-14 px-4">
-          <Link to="/user" className="flex items-center gap-2 min-w-0">
-            <img src="/logo.png" alt="" className="h-9 w-9 rounded-lg object-cover shrink-0" />
-            <span className="font-semibold text-slate-800 truncate">Denicksen Auto</span>
+          <Link to="/user" className="flex items-center gap-2.5 min-w-0">
+            <img src="/logo.png" alt="" className="h-10 w-10 rounded-xl object-cover shrink-0 ring-2 ring-slate-100 shadow-sm" />
+            <span className="font-bold text-slate-900 truncate">Denicksen Auto</span>
           </Link>
           <Link
             to="/user/profile"
@@ -46,13 +46,13 @@ export default function UserLayout() {
         </div>
       </header>
       {/* Desktop Top Navbar */}
-      <nav className="hidden md:block bg-white shadow-card border-b border-slate-100">
+      <nav className="hidden md:block bg-white/90 backdrop-blur-md shadow-card border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-8">
-              <Link to="/user" className="flex items-center gap-2">
-                <img src="/logo.png" alt="Mechanic Platform" className="h-9 w-9 rounded-xl object-cover" />
-                <span className="font-semibold text-slate-800">Mechanic Platform</span>
+              <Link to="/user" className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="Mechanic Platform" className="h-12 w-12 rounded-xl object-cover ring-2 ring-slate-100 shadow-sm" />
+                <span className="font-bold text-slate-900">Mechanic Platform</span>
               </Link>
               <div className="flex gap-1">
                 {navItems.map((item) => {
@@ -86,7 +86,7 @@ export default function UserLayout() {
       </nav>
 
       {/* Mobile Bottom Navbar — icons with text labels */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-50 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-50 pb-safe">
         <div className="flex items-stretch justify-around h-16 px-2 gap-0.5">
           {navItems.map((item) => {
             const Icon = item.icon

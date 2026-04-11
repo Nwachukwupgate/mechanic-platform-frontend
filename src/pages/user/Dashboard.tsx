@@ -6,6 +6,7 @@ import { Car, MapPin, Clock } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Avatar from '../../components/Avatar'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
+import { SectionLabel } from '../../components/SectionLabel'
 
 export default function UserDashboard() {
   const { user } = useAuth()
@@ -34,31 +35,36 @@ export default function UserDashboard() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Welcome + CTA */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar
-            name={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
-            fallbackLetter={displayName[0]}
-            size="lg"
-            className="shrink-0"
-            ring
-          />
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Hi, {displayName}</h1>
-            <p className="text-sm text-slate-500">Here’s your booking overview.</p>
+      <div className="card p-5 sm:p-6 bg-gradient-to-br from-primary-50/80 via-white to-slate-50/50 border-primary-100/50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar
+              name={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
+              fallbackLetter={displayName[0]}
+              size="lg"
+              className="shrink-0"
+              ring
+            />
+            <div className="min-w-0">
+              <SectionLabel className="mb-1">Your dashboard</SectionLabel>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Hi, {displayName}</h1>
+              <p className="text-sm text-slate-600 mt-0.5">Here&apos;s your booking overview.</p>
+            </div>
           </div>
+          <Link
+            to="/user/find-mechanics"
+            className="btn-gradient px-6 py-3 text-sm shrink-0 justify-center sm:w-auto w-full"
+          >
+            Find mechanics
+          </Link>
         </div>
-        <Link
-          to="/user/find-mechanics"
-          className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors shrink-0"
-        >
-          Find Mechanics
-        </Link>
       </div>
 
+      <div>
+        <SectionLabel className="mb-3 sm:mb-4">At a glance</SectionLabel>
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="card p-5 sm:p-6 border-t-4 border-t-amber-400/90">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-slate-500 text-sm font-medium">Active Bookings</p>
@@ -69,7 +75,7 @@ export default function UserDashboard() {
             <Clock className="h-9 w-9 text-primary-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="card p-5 sm:p-6 border-t-4 border-t-primary-500">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-slate-500 text-sm font-medium">Total Bookings</p>
@@ -78,7 +84,7 @@ export default function UserDashboard() {
             <Car className="h-9 w-9 text-accent-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="card p-5 sm:p-6 border-t-4 border-t-emerald-500">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-slate-500 text-sm font-medium">Completed</p>
@@ -90,11 +96,13 @@ export default function UserDashboard() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Recent Bookings */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100">
-          <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Recent Bookings</h2>
+      <div className="card overflow-hidden p-0">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100/80 bg-slate-50/40">
+          <SectionLabel className="mb-1">Activity</SectionLabel>
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Recent bookings</h2>
         </div>
         <div className="divide-y divide-slate-100">
           {bookings.slice(0, 5).map((booking) => {

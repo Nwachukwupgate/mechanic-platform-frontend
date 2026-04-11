@@ -16,6 +16,8 @@ type ProfileForm = {
   state: string
   zipCode: string
   bio: string
+  typicalResponseHours: string
+  nextAvailableNote: string
   experience: string
   workshopAddress: string
   nin: string
@@ -54,6 +56,8 @@ export default function MechanicProfile() {
       vehicleTypes: [],
       expertise: [],
       brands: [],
+      typicalResponseHours: '',
+      nextAvailableNote: '',
     },
   })
 
@@ -75,6 +79,11 @@ export default function MechanicProfile() {
           setValue('state', profileData.state || '')
           setValue('zipCode', profileData.zipCode || '')
           setValue('bio', profileData.bio || '')
+          setValue(
+            'typicalResponseHours',
+            profileData.typicalResponseHours != null ? String(profileData.typicalResponseHours) : ''
+          )
+          setValue('nextAvailableNote', profileData.nextAvailableNote || '')
           setValue('experience', profileData.experience || '')
           setValue('workshopAddress', profileData.workshopAddress || '')
           setValue('nin', profileData.nin || '')
@@ -85,6 +94,7 @@ export default function MechanicProfile() {
           setValue('expertise', Array.isArray(profileData.expertise) ? profileData.expertise : [])
           setValue('brands', Array.isArray(profileData.brands) ? profileData.brands : [])
           setCertificateUrl(profileData.certificateUrl || null)
+          setAvatarUrl(profileData.avatar ?? profileData.avatarUrl ?? null)
           setAvailability(profileData.availability ?? true)
           if (profileData.latitude != null && profileData.longitude != null) {
             const loc = { lat: profileData.latitude, lng: profileData.longitude }
@@ -248,6 +258,14 @@ export default function MechanicProfile() {
         state: data.state,
         zipCode: data.zipCode,
         bio: data.bio,
+        typicalResponseHours:
+          data.typicalResponseHours.trim() === ''
+            ? null
+            : (() => {
+                const n = Number(data.typicalResponseHours)
+                return Number.isFinite(n) && n > 0 ? n : null
+              })(),
+        nextAvailableNote: data.nextAvailableNote.trim() || null,
         experience: data.experience,
         workshopAddress: data.workshopAddress,
         latitude: latestLoc?.lat ?? null,
@@ -268,7 +286,7 @@ export default function MechanicProfile() {
       } catch (firstError) {
         // Production backend may not support "brands" yet — retry without it so the rest of the profile saves
         if (isPropertyNotAllowedError(firstError, 'brands')) {
-          const { brands: _b, ...payloadWithoutBrands } = payload
+          const { brands: _b, ...payloadWithoutBrands } = payload as typeof payload & { brands?: unknown }
           await mechanicsAPI.updateProfile(payloadWithoutBrands)
           toast.success('Profile updated. Car brands could not be saved (server does not support this yet).')
         } else {
@@ -282,6 +300,8 @@ export default function MechanicProfile() {
         state: data.state,
         zipCode: data.zipCode,
         bio: data.bio,
+        typicalResponseHours: data.typicalResponseHours,
+        nextAvailableNote: data.nextAvailableNote,
         experience: data.experience,
         workshopAddress: data.workshopAddress,
         nin: data.nin,
@@ -669,6 +689,37 @@ export default function MechanicProfile() {
               {...register('zipCode')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+          </div>
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">How customers see you</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Usually replies within (hours, optional)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={168}
+                  step={1}
+                  placeholder="e.g. 4"
+                  {...register('typicalResponseHours')}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Shown on direct requests so customers know what to expect.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Next availability note (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Earliest slot: tomorrow afternoon"
+                  {...register('nextAvailableNote')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

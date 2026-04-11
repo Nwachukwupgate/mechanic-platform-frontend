@@ -14,6 +14,7 @@ import {
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Avatar from '../../components/Avatar'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
+import { SectionLabel } from '../../components/SectionLabel'
 
 const STATUS_BADGE: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
@@ -98,7 +99,7 @@ export default function MechanicDashboard() {
   return (
     <div className="space-y-6 sm:space-y-8 md:space-y-10">
       {/* Welcome + page title */}
-      <div className="rounded-xl border border-slate-200 bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm">
+      <div className="card px-4 sm:px-5 py-4 sm:py-5 bg-gradient-to-br from-primary-50/80 via-white to-slate-50/50 border-primary-100/50">
         <div className="flex items-center gap-3">
           <Avatar
             name={`${user?.ownerFullName ?? user?.companyName ?? ''}`.trim()}
@@ -108,15 +109,18 @@ export default function MechanicDashboard() {
             ring
           />
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold text-slate-800">Hi, {displayName}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Overview of your requests and bookings.</p>
+            <SectionLabel className="mb-1">Workshop home</SectionLabel>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Hi, {displayName}</h1>
+            <p className="text-sm text-slate-600 mt-0.5">Overview of your requests and bookings.</p>
           </div>
         </div>
       </div>
 
+      <div>
+        <SectionLabel className="mb-3 sm:mb-4">At a glance</SectionLabel>
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 sm:py-4">
+        <div className="card px-4 py-4 sm:py-4 border-t-4 border-t-amber-400/90">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-2xl font-semibold tabular-nums text-slate-800">{pendingBookings.length}</p>
@@ -125,7 +129,7 @@ export default function MechanicDashboard() {
             <Clock className="h-8 w-8 text-amber-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 sm:py-4">
+        <div className="card px-4 py-4 sm:py-4 border-t-4 border-t-primary-500">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-2xl font-semibold tabular-nums text-slate-800">{activeBookings.length}</p>
@@ -134,7 +138,7 @@ export default function MechanicDashboard() {
             <Briefcase className="h-8 w-8 text-primary-500/80 shrink-0" aria-hidden />
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 sm:py-4">
+        <div className="card px-4 py-4 sm:py-4 border-t-4 border-t-emerald-500">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-2xl font-semibold tabular-nums text-slate-800">{completedBookings.length}</p>
@@ -144,16 +148,18 @@ export default function MechanicDashboard() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Open requests */}
       <section aria-labelledby="open-requests-heading">
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 flex flex-col gap-3 card px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <ClipboardList className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <div>
+            <div className="min-w-0">
+              <SectionLabel className="mb-1">Opportunities</SectionLabel>
               <h2
                 id="open-requests-heading"
-                className="text-base font-semibold text-slate-800"
+                className="text-base font-semibold text-slate-900"
               >
                 Open requests
               </h2>
@@ -171,11 +177,11 @@ export default function MechanicDashboard() {
         </div>
 
         {openRequestsLoading ? (
-          <div className="flex justify-center rounded-xl border border-slate-200 bg-white py-16">
+          <div className="flex justify-center card py-16">
             <LoadingSpinner variant="logo" />
           </div>
         ) : openRequests.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">
+          <div className="card py-16 text-center">
             <ClipboardList className="mx-auto h-10 w-10 text-slate-300" aria-hidden />
             <p className="mt-3 text-sm font-medium text-slate-600">
               No open requests in your area
@@ -192,7 +198,7 @@ export default function MechanicDashboard() {
                 <li key={req.id}>
                   <Link
                     to={`/mechanic/bookings/${req.id}`}
-                    className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="group flex flex-col gap-3 card p-4 transition-colors hover:border-slate-200/90 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex gap-3 min-w-0 flex-1">
                       <RepairTypeIcon fault={req.fault} size="md" />
@@ -233,14 +239,15 @@ export default function MechanicDashboard() {
 
       {/* Pending (assigned to you) */}
       <section aria-labelledby="pending-heading">
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 flex items-center justify-between card px-4 py-4">
+          <div className="flex items-center gap-3 min-w-0">
             <Clock className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <div>
-              <h2 id="pending-heading" className="text-base font-semibold text-slate-800">
+            <div className="min-w-0">
+              <SectionLabel className="mb-1">Needs your quote</SectionLabel>
+              <h2 id="pending-heading" className="text-base font-semibold text-slate-900">
                 Pending
               </h2>
-              <p className="text-sm text-slate-500">Assigned to you, awaiting your action</p>
+              <p className="text-sm text-slate-500">Customer sent the job to you — submit your quote on the booking page</p>
             </div>
           </div>
           {pendingBookings.length > 0 && (
@@ -251,7 +258,7 @@ export default function MechanicDashboard() {
         </div>
 
         {pendingBookings.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white py-12 text-center">
+          <div className="card py-12 text-center">
             <p className="text-sm text-slate-500">No pending requests.</p>
           </div>
         ) : (
@@ -263,7 +270,7 @@ export default function MechanicDashboard() {
                   <li key={booking.id}>
                     <Link
                       to={`/mechanic/bookings/${booking.id}`}
-                      className="group flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/50 sm:flex-row sm:items-center sm:justify-between"
+                      className="group flex flex-col gap-2 card p-4 transition-colors hover:border-slate-200/90 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex gap-3 min-w-0 flex-1">
                         <RepairTypeIcon fault={booking.fault} size="md" />
@@ -287,7 +294,7 @@ export default function MechanicDashboard() {
               })}
             </ul>
             {pendingBookings.length > 5 && (
-              <p className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="mt-3 card px-4 py-3">
                 <Link
                   to="/mechanic/bookings"
                   className="text-sm font-medium text-primary-600 hover:text-primary-700"
@@ -302,11 +309,12 @@ export default function MechanicDashboard() {
 
       {/* Recent bookings */}
       <section aria-labelledby="recent-heading">
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 flex items-center justify-between card px-4 py-4">
+          <div className="flex items-center gap-3 min-w-0">
             <Briefcase className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <div>
-              <h2 id="recent-heading" className="text-base font-semibold text-slate-800">
+            <div className="min-w-0">
+              <SectionLabel className="mb-1">History</SectionLabel>
+              <h2 id="recent-heading" className="text-base font-semibold text-slate-900">
                 Recent bookings
               </h2>
               <p className="text-sm text-slate-500">Your latest jobs</p>
@@ -323,7 +331,7 @@ export default function MechanicDashboard() {
         </div>
 
         {bookings.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white py-12 text-center">
+          <div className="card py-12 text-center">
             <p className="text-sm text-slate-500">No bookings yet.</p>
           </div>
         ) : (
@@ -334,7 +342,7 @@ export default function MechanicDashboard() {
                 <li key={booking.id}>
                   <Link
                     to={`/mechanic/bookings/${booking.id}`}
-                    className="group flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="group flex flex-col gap-2 card p-4 transition-colors hover:border-slate-200/90 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex gap-3 min-w-0 flex-1">
                       <RepairTypeIcon fault={booking.fault} size="md" />

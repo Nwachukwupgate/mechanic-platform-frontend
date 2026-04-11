@@ -7,6 +7,8 @@ export type ChatMessage = {
   senderId: string
   senderType?: string
   createdAt: string
+  read?: boolean
+  readAt?: string | null
 }
 
 type BookingChatProps = {
@@ -86,6 +88,7 @@ export function BookingChat({
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
+                    {isOwn && msg.read ? ' · Read' : ''}
                   </p>
                 </div>
               </div>
@@ -102,6 +105,7 @@ export function BookingChat({
       >
         <input
           type="text"
+          aria-label="Message"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

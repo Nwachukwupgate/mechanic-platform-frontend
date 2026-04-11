@@ -21,6 +21,9 @@ export default function FindMechanics() {
   const [searching, setSearching] = useState(false)
   const [requestingMechanicId, setRequestingMechanicId] = useState<string | null>(null)
   const [diagnosticNotes, setDiagnosticNotes] = useState('')
+  const [minRating, setMinRating] = useState<number | ''>('')
+  const [availableOnly, setAvailableOnly] = useState(false)
+  const [jobPhotos, setJobPhotos] = useState<File[]>([])
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -117,17 +120,30 @@ export default function FindMechanics() {
     const fault = faults.find((f) => f.id === selectedFault)
     if (!fault) return
 
+    setSearching(true)
     try {
       const res = await bookingsAPI.findNearbyMechanics(
         userLocation.lat,
         userLocation.lng,
         fault.category,
         10,
-        selectedVehicle
+        selectedVehicle,
+        {
+          ...(minRating !== '' && minRating > 0 ? { minRating } : {}),
+          ...(availableOnly ? { availableOnly: true } : {}),
+        }
       )
-      setMechanics(res.data)
+      const list = Array.isArray(res.data) ? [...res.data] : []
+      list.sort((a: any, b: any) => {
+        const da = typeof a.distanceKm === 'number' ? a.distanceKm : Infinity
+        const db = typeof b.distanceKm === 'number' ? b.distanceKm : Infinity
+        return da - db
+      })
+      setMechanics(list)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to find mechanics'))
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -147,8 +163,21 @@ export default function FindMechanics() {
         locationLat: userLocation?.lat,
         locationLng: userLocation?.lng,
       })
-      toast.success(mechanicId ? 'Booking requested successfully' : 'Job posted. Mechanics can send you quotes.')
-      navigate(`/user/bookings/${res.data.id}`)
+      const bookingId = res.data.id as string
+      if (jobPhotos.length > 0) {
+        try {
+          await bookingsAPI.uploadBookingPhotos(bookingId, jobPhotos.slice(0, 3))
+        } catch (uploadErr) {
+          toast.error(getApiErrorMessage(uploadErr, 'Booking created but photos failed to upload — add them from the booking page.'))
+        }
+      }
+      toast.success(
+        mechanicId
+          ? 'Request sent. The mechanic can send you a quote on this job — open the booking to accept it and chat.'
+          : 'Job posted. Mechanics can send you quotes.'
+      )
+      setJobPhotos([])
+      navigate(`/user/bookings/${bookingId}`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to create booking'))
     } finally {
@@ -224,6 +253,7 @@ export default function FindMechanics() {
               {locationError}
             </p>
           )}
+        </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Additional details (optional)
@@ -236,6 +266,60 @@ export default function FindMechanics() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
         </div>
+        <div className="mt-4 grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Minimum rating (optional)</label>
+            <select
+              value={minRating === '' ? '' : String(minRating)}
+              onChange={(e) => {
+                const v = e.target.value
+                setMinRating(v === '' ? '' : Number(v))
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">Any rating</option>
+              <option value="3">3+ stars</option>
+              <option value="4">4+ stars</option>
+              <option value="4.5">4.5+ stars</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer pb-2">
+              <input
+                type="checkbox"
+                checked={availableOnly}
+                onChange={(e) => setAvailableOnly(e.target.checked)}
+                className="rounded border-gray-300 text-primary-600"
+              />
+              Available now only
+            </label>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Photos of the issue (optional, up to 3, max 5MB each)
+          </label>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="block w-full text-sm text-gray-600"
+            onChange={(e) => {
+              const files = e.target.files ? Array.from(e.target.files).slice(0, 3) : []
+              const maxBytes = 5 * 1024 * 1024
+              for (const f of files) {
+                if (f.size > maxBytes) {
+                  toast.error('Each photo must be under 5MB')
+                  e.target.value = ''
+                  return
+                }
+              }
+              setJobPhotos(files)
+            }}
+          />
+          {jobPhotos.length > 0 && (
+            <p className="text-xs text-gray-500 mt-1">{jobPhotos.length} photo(s) will upload after you create the job.</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -357,8 +441,24 @@ export default function FindMechanics() {
             {mechanic.bio && <p className="text-sm text-gray-600 mb-3">{mechanic.bio}</p>}
             <div className="flex items-center space-x-1 mb-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              <span className="text-sm">4.5</span>
+              <span className="text-sm">
+                {typeof mechanic.averageRating === 'number'
+                  ? mechanic.averageRating.toFixed(1)
+                  : '—'}
+                {typeof mechanic.distanceKm === 'number' && (
+                  <span className="text-gray-500 ml-2">
+                    · {mechanic.distanceKm < 1
+                      ? `${Math.round(mechanic.distanceKm * 1000)} m away`
+                      : `${mechanic.distanceKm.toFixed(1)} km away`}
+                  </span>
+                )}
+              </span>
             </div>
+            {(mechanic.nextAvailableNote || mechanic.profile?.nextAvailableNote) && (
+              <p className="text-xs text-primary-700 mb-2 font-medium">
+                Next availability: {mechanic.nextAvailableNote || mechanic.profile?.nextAvailableNote}
+              </p>
+            )}
             <div className="flex items-center space-x-1 mb-4">
               <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
               <span className="text-sm text-gray-600">

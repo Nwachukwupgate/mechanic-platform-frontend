@@ -50,6 +50,11 @@ export const api = axios.create({
   },
 })
 
+/** Public app config / feature flags (no auth). */
+export const configAPI = {
+  getPublic: () => api.get<{ flags: Record<string, boolean | number | string> }>('/config/public'),
+}
+
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
   let token = useAuthStore.getState().token
@@ -140,6 +145,10 @@ export const usersAPI = {
   updateProfile: (data: any) => api.put('/users/me/profile', data),
   deleteAccount: (data: { reasons: string[]; otherReason?: string }) =>
     api.post<{ deleted: boolean }>('/users/me/delete-account', data),
+  blockMechanic: (mechanicId: string) => api.post('/users/me/blocked-mechanics', { mechanicId }),
+  unblockMechanic: (mechanicId: string) => api.delete(`/users/me/blocked-mechanics/${mechanicId}`),
+  listBlockedMechanics: () => api.get('/users/me/blocked-mechanics'),
+  setPushToken: (token: string | null) => api.put('/users/me/push-token', { token }),
 }
 
 // Mechanics API
@@ -173,6 +182,7 @@ export const mechanicsAPI = {
   setDefaultBankAccount: (accountId: string) => api.put(`/mechanics/me/bank-accounts/${accountId}/default`),
   deleteBankAccount: (accountId: string) => api.delete(`/mechanics/me/bank-accounts/${accountId}`),
   deleteAccount: () => api.post<{ deleted: boolean }>('/mechanics/me/delete-account'),
+  setPushToken: (token: string | null) => api.put('/mechanics/me/push-token', { token }),
 }
 
 // Vehicles API
@@ -201,10 +211,19 @@ export const bookingsAPI = {
     lng: number,
     faultCategory: string,
     radius?: number,
-    vehicleId?: string
+    vehicleId?: string,
+    opts?: { minRating?: number; availableOnly?: boolean }
   ) =>
     api.get('/bookings/nearby-mechanics', {
-      params: { lat, lng, faultCategory, radius, vehicleId },
+      params: {
+        lat,
+        lng,
+        faultCategory,
+        radius,
+        vehicleId,
+        ...(opts?.minRating != null ? { minRating: opts.minRating } : {}),
+        ...(opts?.availableOnly != null ? { availableOnly: opts.availableOnly } : {}),
+      },
     }),
   acceptBooking: (id: string) => api.put(`/bookings/${id}/accept`),
   updateStatus: (id: string, status: string) =>
@@ -231,6 +250,19 @@ export const bookingsAPI = {
     api.post(`/bookings/${bookingId}/clarifications`, { question }),
   answerClarification: (clarificationId: string, answer: string) =>
     api.put(`/bookings/clarifications/${clarificationId}/answer`, { answer }),
+  getReceipt: (bookingId: string) => api.get(`/bookings/${bookingId}/receipt`),
+  reportBooking: (bookingId: string, reason: string, details?: string) =>
+    api.post(`/bookings/${bookingId}/report`, { reason, details }),
+  disputeBooking: (bookingId: string, reason: string) =>
+    api.put(`/bookings/${bookingId}/dispute`, { reason }),
+  markMessagesRead: (bookingId: string) => api.put(`/bookings/${bookingId}/messages/read`),
+  uploadBookingPhotos: (bookingId: string, files: File[]) => {
+    const form = new FormData()
+    files.forEach((f) => form.append('files', f))
+    return api.post(`/bookings/${bookingId}/photos`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 // Ratings API

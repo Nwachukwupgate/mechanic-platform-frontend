@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { bookingsAPI, getApiErrorMessage } from '../../services/api'
@@ -7,10 +7,14 @@ import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
-import { ArrowLeft, Banknote, MapPin, User, MessageCircle, HelpCircle } from 'lucide-react'
+import { mechanicBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
+import { ArrowLeft, Banknote, MapPin, User, MessageCircle, HelpCircle, ImageIcon } from 'lucide-react'
+
+const MAX_QUOTE_PRICE_REVISIONS = 3
 
 const statusStyles: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
+  EXPIRED: 'bg-slate-200 text-slate-700',
   ACCEPTED: 'bg-primary-100 text-primary-800',
   IN_PROGRESS: 'bg-violet-100 text-violet-800',
   DONE: 'bg-emerald-100 text-emerald-800',
@@ -24,7 +28,6 @@ export default function MechanicBookingDetail() {
   const [booking, setBooking] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [status, setStatus] = useState('')
-  const [accepting, setAccepting] = useState(false)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [quotePrice, setQuotePrice] = useState('')
   const [quoteMessage, setQuoteMessage] = useState('')
@@ -46,6 +49,8 @@ export default function MechanicBookingDetail() {
       })
     }
     const unsub = onQuoteEvents({
+      onQuoteCreated: (p) => p.bookingId === id && loadBookingRef.current(),
+      onQuoteUpdated: (p) => p.bookingId === id && loadBookingRef.current(),
       onQuoteRejected: (p) => p.bookingId === id && loadBookingRef.current(),
       onQuoteAccepted: (p) => p.bookingId === id && loadBookingRef.current(),
     })
@@ -54,6 +59,11 @@ export default function MechanicBookingDetail() {
       unsub()
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id || !booking?.mechanicId || booking.status === 'REQUESTED') return
+    bookingsAPI.markMessagesRead(id).catch(() => {})
+  }, [id, booking?.mechanicId, booking?.status])
 
   const loadBooking = async () => {
     try {
@@ -85,7 +95,10 @@ export default function MechanicBookingDetail() {
   }
 
   const myQuote = booking?.quotes?.find((q: any) => q.mechanicId === currentUser?.id || q.mechanic?.id === currentUser?.id)
-  const isOpenRequest = booking?.status === 'REQUESTED' && !booking?.mechanicId
+  /** Open job board or a job sent directly to this mechanic — quote while still REQUESTED */
+  const canQuoteWhileRequested =
+    booking?.status === 'REQUESTED' &&
+    (!booking?.mechanicId || booking?.mechanicId === currentUser?.id)
 
   const submitOrUpdateQuote = async () => {
     if (!id || !quotePrice.trim()) {
@@ -116,19 +129,6 @@ export default function MechanicBookingDetail() {
     }
   }
 
-  const acceptBooking = async () => {
-    setAccepting(true)
-    try {
-      await bookingsAPI.acceptBooking(booking.id)
-      toast.success('Booking accepted')
-      loadBooking()
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Failed to accept booking'))
-    } finally {
-      setAccepting(false)
-    }
-  }
-
   const updateStatus = async (newStatus: string) => {
     try {
       await bookingsAPI.updateStatus(booking.id, newStatus)
@@ -155,6 +155,21 @@ export default function MechanicBookingDetail() {
       setClarificationSubmitting(false)
     }
   }
+
+  const guidanceLine = useMemo(
+    () => (booking ? mechanicBookingGuidance(booking.status) : ''),
+    [booking]
+  )
+
+  const photoUrls: string[] =
+    booking?.photoUrls && Array.isArray(booking.photoUrls) ? booking.photoUrls : []
+
+  const competingQuotes = useMemo(() => {
+    if (!booking?.quotes?.length || !currentUser?.id) return []
+    return booking.quotes.filter(
+      (q: any) => q.mechanicId !== currentUser.id && q.mechanic?.id !== currentUser.id
+    )
+  }, [booking?.quotes, currentUser?.id])
 
   if (!booking) {
     return (
@@ -207,14 +222,42 @@ export default function MechanicBookingDetail() {
             {status.replace('_', ' ')}
           </span>
         </div>
+        {guidanceLine && (
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed border-l-4 border-primary-200 pl-3">
+            {guidanceLine}
+          </p>
+        )}
+        {booking.openRequestExpiresAt && booking.status === 'REQUESTED' && !booking.mechanicId && (
+          <p className="mt-2 text-xs text-slate-500">
+            Open board closes {new Date(booking.openRequestExpiresAt).toLocaleString()}.
+          </p>
+        )}
+        {Array.isArray(booking.transactions) && booking.transactions.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {booking.transactions.map((t: any) => (
+              <span
+                key={t.id}
+                className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                  t.status === 'SUCCESS'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : t.status === 'PENDING'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {String(t.type || 'Payment').replace(/_/g, ' ')} · {t.status}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Job details / Pre-job discussion — helps price; for records after accept */}
         <div className="mt-4 pt-4 border-t border-slate-100">
           <h3 className="font-medium text-slate-800 mb-2 flex items-center gap-2">
-            {booking.mechanicId ? (
+            {booking.mechanicId && booking.mechanicId === currentUser?.id ? (
               <>
                 <MessageCircle className="h-4 w-4 text-primary-600" />
-                Pre-job discussion (for records)
+                Job sent to you — review details before quoting
               </>
             ) : (
               <>
@@ -223,10 +266,27 @@ export default function MechanicBookingDetail() {
               </>
             )}
           </h3>
-          {(booking.description || (Array.isArray(booking.clarifications) && booking.clarifications.length > 0)) ? (
+            {(booking.description ||
+              (Array.isArray(booking.clarifications) && booking.clarifications.length > 0) ||
+              photoUrls.length > 0) ? (
             <div className="space-y-3 text-sm">
               {booking.description && (
                 <p className="text-slate-700"><span className="font-medium text-slate-600">Customer description:</span> {booking.description}</p>
+              )}
+              {photoUrls.length > 0 && (
+                <div>
+                  <p className="font-medium text-slate-600 mb-2 flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-primary-600" />
+                    Customer photos
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {photoUrls.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt="" className="h-24 w-24 object-cover rounded-lg border border-slate-200" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
               )}
               {Array.isArray(booking.clarifications) && booking.clarifications.length > 0 && (
                 <div>
@@ -249,7 +309,7 @@ export default function MechanicBookingDetail() {
           ) : (
             <p className="text-slate-500 text-sm">No extra details from the customer yet.</p>
           )}
-          {isOpenRequest && (
+          {canQuoteWhileRequested && (
             <>
               <div className="mt-3 flex flex-wrap gap-2 items-end">
                 <input
@@ -277,7 +337,7 @@ export default function MechanicBookingDetail() {
         </div>
 
         {/* Open request: submit or update your price (real-time) */}
-        {isOpenRequest && (
+        {canQuoteWhileRequested && (
           <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
             <h3 className="font-medium text-slate-800 mb-2">
               {myQuote ? 'Update your quote' : 'Submit your price for this job'}
@@ -325,28 +385,30 @@ export default function MechanicBookingDetail() {
             </div>
             {myQuote && (
               <p className="mt-2 text-sm text-slate-500">
-                Status: {myQuote.status}. User may accept or reject. You can increase your price above.
+                Status: {quoteStatusLabel(myQuote.status)}. User may accept or reject. You can adjust your price above
+                {typeof myQuote.priceUpdateCount === 'number' && (
+                  <>
+                    {' '}
+                    (price updates used: {myQuote.priceUpdateCount}/{MAX_QUOTE_PRICE_REVISIONS})
+                  </>
+                )}
+                .
               </p>
             )}
-          </div>
-        )}
-
-        {status === 'REQUESTED' && booking?.mechanicId && (
-          <button
-            type="button"
-            onClick={acceptBooking}
-            disabled={accepting}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {accepting ? (
-              <>
-                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Accepting…
-              </>
-            ) : (
-              'Accept booking'
+            {booking.status === 'REQUESTED' && competingQuotes.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-200">
+                <p className="text-sm font-medium text-slate-700 mb-2">Other mechanics on this job (read-only)</p>
+                <ul className="text-sm space-y-1 text-slate-600">
+                  {competingQuotes.map((q: any) => (
+                    <li key={q.id}>
+                      {q.mechanic?.companyName ?? 'Mechanic'} — {'\u20A6'}
+                      {Number(q.proposedPrice).toLocaleString()} · {quoteStatusLabel(q.status)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </button>
+          </div>
         )}
 
         {status !== 'REQUESTED' && (
@@ -427,7 +489,7 @@ export default function MechanicBookingDetail() {
       {/* Chat — only after the customer has accepted a quote */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-slate-800 mb-3">Conversation</h2>
-        {booking.mechanicId ? (
+        {booking.mechanicId && booking.status !== 'REQUESTED' ? (
           <BookingChat
             messages={messages}
             currentUserId={currentUser?.id ?? ''}

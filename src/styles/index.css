@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply m-0 font-sans text-slate-800 antialiased;
+    @apply m-0 font-sans text-slate-800 antialiased bg-[#f2f7f4];
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   /* Brand focus ring (no blue) */
@@ -26,18 +26,33 @@
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2.5 text-white font-medium rounded-xl transition-colors;
-    background-color: #086C40;
-    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+    @apply px-4 py-2.5 text-white font-semibold rounded-xl transition-all duration-200;
+    background: linear-gradient(135deg, #1e8d62 0%, #086c40 52%, #065732 100%);
+    box-shadow: 0 4px 14px -3px rgba(8, 108, 64, 0.45);
   }
   .btn-primary:hover {
-    background-color: #065732;
+    filter: brightness(1.06);
+    box-shadow: 0 8px 28px -6px rgba(8, 108, 64, 0.45);
   }
   .btn-primary:active {
-    background-color: #054329;
+    filter: brightness(0.96);
+  }
+  /** Primary CTA — use with inline-flex + gap for icons */
+  .btn-gradient {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3.5 text-white font-semibold rounded-xl transition-all duration-200;
+    background: linear-gradient(135deg, #1e8d62 0%, #086c40 50%, #054329 100%);
+    box-shadow: 0 4px 20px -4px rgba(8, 108, 64, 0.5);
+  }
+  .btn-gradient:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 12px 36px -8px rgba(8, 108, 64, 0.55);
+    transform: translateY(-1px);
+  }
+  .btn-gradient:active {
+    transform: translateY(0);
   }
   .card {
-    @apply bg-white rounded-2xl border border-slate-100;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    @apply bg-white rounded-2xl border border-slate-100/80;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 4px 20px -4px rgba(8, 108, 64, 0.06);
   }
 }

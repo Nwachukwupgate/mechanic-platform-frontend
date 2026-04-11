@@ -19,8 +19,8 @@ export default function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <nav className="bg-white shadow-card border-b border-slate-100 sticky top-0 z-40">
+    <div className="min-h-screen flex flex-col bg-[#f2f7f4]">
+      <nav className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
@@ -75,10 +75,7 @@ export default function PublicLayout() {
                   >
                     Log in
                   </Link>
-                  <Link
-                    to="/register"
-                    className="px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-xl hover:bg-primary-700 shadow-soft"
-                  >
+                  <Link to="/register" className="btn-gradient px-4 py-2.5 text-sm">
                     Sign up
                   </Link>
                 </>
@@ -144,13 +141,15 @@ export default function PublicLayout() {
                     >
                       Log in
                     </Link>
-                    <Link
-                      to="/register"
-                      className="block px-4 py-3 text-center text-white bg-primary-600 rounded-xl font-medium mx-2 mt-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Sign up
-                    </Link>
+                    <div className="px-2 pt-2">
+                      <Link
+                        to="/register"
+                        className="btn-gradient w-full justify-center"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Sign up
+                      </Link>
+                    </div>
                   </>
                 )}
               </div>
@@ -161,13 +160,13 @@ export default function PublicLayout() {
       <main className="flex-grow">
         <Outlet />
       </main>
-      <footer className="bg-gray-200 text-slate-800 py-12 mt-auto">
+      <footer className="mt-auto border-t border-slate-200/80 bg-gradient-to-b from-slate-100 to-slate-200/90 text-slate-800 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2">
-                <img src="/logo.png" alt="Denicksen Auto" className="h-20 w-20 rounded-xl object-cover" />
-                <span className="font-semibold text-slate-800">Denicksen Auto</span>
+                <img src="/logo.png" alt="Denicksen Auto" className="h-12 w-12 rounded-xl object-cover ring-2 ring-white/80 shadow-sm" />
+                <span className="font-bold text-slate-900">Denicksen Auto</span>
               </Link>
             </div>
             <nav className="flex flex-wrap gap-6 text-sm font-medium" aria-label="Footer">
@@ -178,7 +177,7 @@ export default function PublicLayout() {
               <Link to="/privacy" className="text-slate-700 hover:text-slate-900 transition-colors">Privacy</Link>
             </nav>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-300">
+          <div className="mt-8 pt-8 border-t border-slate-300/80">
             <p className="text-sm text-slate-600">
               &copy; {new Date().getFullYear()} Mechanic Platform. All rights reserved.
             </p>

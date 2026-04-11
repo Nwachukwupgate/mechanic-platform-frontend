@@ -5,6 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { authAPI } from '../../services/api'
+import { SectionLabel } from '../../components/SectionLabel'
+
+const fieldClass =
+  'w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/90 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:border-primary-500'
 
 const userRegisterSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -75,13 +79,21 @@ export default function Register() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md">
-          <div className="bg-primary-50 border border-primary-200 rounded-xl p-6 text-center shadow-md">
-            <h2 className="text-xl font-semibold text-primary-800 mb-2">Registration Successful!</h2>
-            <p className="text-primary-700">
-              Please check your email to verify your account before logging in.
+      <div className="relative min-h-screen bg-[#f2f7f4] flex items-center justify-center py-12 px-4 overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.12),transparent_55%),radial-gradient(ellipse_60%_40%_at_100%_50%,rgba(59,130,246,0.06),transparent_50%)]"
+        />
+        <div className="relative z-10 w-full max-w-md">
+          <div className="card overflow-hidden text-center p-8 sm:p-10 bg-gradient-to-br from-primary-50/90 via-white to-slate-50/80 border-primary-100/60">
+            <div className="flex justify-center mb-4">
+              <SectionLabel>Success</SectionLabel>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">You&apos;re almost there</h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Check your email to verify your account, then sign in.
             </p>
+            <p className="mt-4 text-xs text-slate-500">Redirecting to login…</p>
           </div>
         </div>
       </div>
@@ -89,19 +101,36 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white shadow-md rounded-xl px-8 pt-6 pb-8 border border-slate-200">
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
+    <div className="relative min-h-screen bg-[#f2f7f4] flex items-center justify-center py-12 px-4 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.12),transparent_55%),radial-gradient(ellipse_60%_40%_at_100%_50%,rgba(59,130,246,0.06),transparent_50%)]"
+      />
+      <div className="relative z-10 w-full max-w-md">
+        <div className="card px-6 sm:px-8 pt-8 pb-8">
+          <div className="text-center mb-6">
+            <Link to="/" className="inline-flex flex-col items-center gap-3 no-underline text-inherit">
+              <img
+                src="/logo.png"
+                alt=""
+                className="h-12 w-12 rounded-xl object-cover shadow-md ring-2 ring-white"
+              />
+            </Link>
+            <div className="mt-5 flex justify-center">
+              <SectionLabel>Create account</SectionLabel>
+            </div>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Sign up</h1>
+            <p className="mt-1 text-sm text-slate-500">Join as a car owner or a mechanic workshop.</p>
+          </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             I am a
           </label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as 'USER' | 'MECHANIC')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className={fieldClass}
           >
             <option value="USER">User</option>
             <option value="MECHANIC">Mechanic</option>
@@ -109,7 +138,7 @@ export default function Register() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm">
             {error}
           </div>
         )}
@@ -117,13 +146,13 @@ export default function Register() {
         {role === 'USER' ? (
           <form onSubmit={userForm.handleSubmit(onSubmitUser)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 First Name
               </label>
               <input
                 type="text"
                 {...userForm.register('firstName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {userForm.formState.errors.firstName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -133,13 +162,13 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Last Name
               </label>
               <input
                 type="text"
                 {...userForm.register('lastName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {userForm.formState.errors.lastName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -149,13 +178,13 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Email
               </label>
               <input
                 type="email"
                 {...userForm.register('email')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {userForm.formState.errors.email && (
                 <p className="mt-1 text-sm text-red-600">
@@ -165,13 +194,13 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Date of Birth
               </label>
               <input
                 type="date"
                 {...userForm.register('dateOfBirth')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {userForm.formState.errors.dateOfBirth && (
                 <p className="mt-1 text-sm text-red-600">
@@ -181,19 +210,19 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...userForm.register('password')}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className={`${fieldClass} pr-10`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 rounded-lg"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -209,7 +238,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={userForm.formState.isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="btn-gradient w-full justify-center py-3.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:transform-none"
             >
               {userForm.formState.isSubmitting ? (
                 <>
@@ -224,13 +253,13 @@ export default function Register() {
         ) : (
           <form onSubmit={mechanicForm.handleSubmit(onSubmitMechanic)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Company Name
               </label>
               <input
                 type="text"
                 {...mechanicForm.register('companyName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {mechanicForm.formState.errors.companyName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -240,13 +269,13 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Owner Full Name
               </label>
               <input
                 type="text"
                 {...mechanicForm.register('ownerFullName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {mechanicForm.formState.errors.ownerFullName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -256,13 +285,13 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Email
               </label>
               <input
                 type="email"
                 {...mechanicForm.register('email')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={fieldClass}
               />
               {mechanicForm.formState.errors.email && (
                 <p className="mt-1 text-sm text-red-600">
@@ -272,19 +301,19 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...mechanicForm.register('password')}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className={`${fieldClass} pr-10`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 rounded-lg"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -300,7 +329,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={mechanicForm.formState.isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="btn-gradient w-full justify-center py-3.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:transform-none"
             >
               {mechanicForm.formState.isSubmitting ? (
                 <>
@@ -314,9 +343,9 @@ export default function Register() {
           </form>
         )}
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 hover:underline">
+          <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 hover:underline">
             Login
           </Link>
         </p>

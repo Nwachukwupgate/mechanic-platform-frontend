@@ -21,6 +21,7 @@ import UserProfile from '../pages/user/Profile'
 import UserVehicles from '../pages/user/Vehicles'
 import FindMechanics from '../pages/user/FindMechanics'
 import BookingDetail from '../pages/user/BookingDetail'
+import BookingReceipt from '../pages/user/BookingReceipt'
 import JobHistory from '../pages/user/JobHistory'
 import UserWallet from '../pages/user/Wallet'
 
@@ -102,6 +103,7 @@ export function AppRoutes() {
         <Route path="vehicles" element={<UserVehicles />} />
         <Route path="find-mechanics" element={<FindMechanics />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
+        <Route path="bookings/:id/receipt" element={<BookingReceipt />} />
         <Route path="history" element={<JobHistory />} />
         <Route path="wallet" element={<UserWallet />} />
       </Route>

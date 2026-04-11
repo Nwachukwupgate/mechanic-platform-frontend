@@ -1,22 +1,41 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { bookingsAPI, ratingsAPI, walletAPI, getApiErrorMessage } from '../../services/api'
+import { bookingsAPI, ratingsAPI, walletAPI, getApiErrorMessage, configAPI, usersAPI } from '../../services/api'
 import { connectSocket, getSocket, onQuoteEvents } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
-import { ArrowLeft, CheckCircle2, CreditCard, Banknote, MapPin, MessageCircle, Star, Wrench, X } from 'lucide-react'
+import { userBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CreditCard,
+  Banknote,
+  MapPin,
+  MessageCircle,
+  Star,
+  Wrench,
+  X,
+  ImagePlus,
+  Flag,
+  AlertTriangle,
+  Ban,
+} from 'lucide-react'
 
 const statusStyles: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
+  EXPIRED: 'bg-slate-200 text-slate-700',
   ACCEPTED: 'bg-primary-100 text-primary-800',
   IN_PROGRESS: 'bg-violet-100 text-violet-800',
   DONE: 'bg-emerald-100 text-emerald-800',
   PAID: 'bg-slate-100 text-slate-800',
   DELIVERED: 'bg-emerald-100 text-emerald-800',
 }
+
+const MAX_BOOKING_PHOTOS = 3
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 export default function BookingDetail() {
   const { id } = useParams()
@@ -33,7 +52,29 @@ export default function BookingDetail() {
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
   const [answerSaving, setAnswerSaving] = useState<string | null>(null)
   const [paymentLoading, setPaymentLoading] = useState<'paystack' | 'direct' | null>(null)
+  const [publicFlags, setPublicFlags] = useState<Record<string, boolean | number | string> | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [disputeOpen, setDisputeOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDetails, setReportDetails] = useState('')
+  const [disputeReason, setDisputeReason] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false)
+  const [blockSubmitting, setBlockSubmitting] = useState(false)
   const loadBookingRef = useRef<() => Promise<void>>(() => Promise.resolve())
+
+  const paymentsEnabled = publicFlags?.paymentsEnabled !== false
+
+  useEffect(() => {
+    configAPI
+      .getPublic()
+      .then((r) => {
+        const d = r.data as Record<string, unknown> & { flags?: Record<string, boolean | number | string> }
+        setPublicFlags(d?.flags ?? (d as Record<string, boolean | number | string>))
+      })
+      .catch(() => setPublicFlags({}))
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -57,6 +98,11 @@ export default function BookingDetail() {
       unsub()
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id || !booking?.mechanicId || booking.status === 'REQUESTED') return
+    bookingsAPI.markMessagesRead(id).catch(() => {})
+  }, [id, booking?.mechanicId, booking?.status])
 
   const loadBooking = async () => {
     try {
@@ -87,7 +133,7 @@ export default function BookingDetail() {
     setQuoteActionLoading(quoteId)
     try {
       await bookingsAPI.acceptQuote(id, quoteId)
-      toast.success('Mechanic accepted')
+      toast.success('Quote accepted')
       loadBooking()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to accept quote'))
@@ -162,6 +208,159 @@ export default function BookingDetail() {
     }
   }
 
+  const guidanceLine = useMemo(() => {
+    if (!booking) return ''
+    const paid = Boolean(booking.paidAt || booking.status === 'PAID' || booking.status === 'DELIVERED')
+    return userBookingGuidance(booking.status, {
+      hasMechanic: Boolean(booking.mechanicId),
+      paid,
+    })
+  }, [booking])
+
+  const historicalQuotes = useMemo(() => {
+    if (!booking?.quotes?.length) return []
+    return [...booking.quotes]
+      .filter((q: any) => q.status && q.status !== 'PENDING')
+      .sort(
+        (a: any, b: any) =>
+          new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+      )
+  }, [booking?.quotes])
+
+  const directRequestNoQuote24h = useMemo(() => {
+    if (!booking || booking.status !== 'REQUESTED' || !booking.mechanicId) return false
+    const created = new Date(booking.createdAt).getTime()
+    const hasQuoteFromAssigned = booking.quotes?.some(
+      (q: any) => (q.mechanicId === booking.mechanicId || q.mechanic?.id === booking.mechanicId) &&
+        ['PENDING', 'ACCEPTED'].includes(q.status)
+    )
+    if (hasQuoteFromAssigned) return false
+    return Date.now() - created >= 24 * 60 * 60 * 1000
+  }, [booking])
+
+  const photoUrls: string[] = Array.isArray(booking?.photoUrls) ? booking.photoUrls : []
+
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!id || !files?.length) return
+    const next: File[] = []
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      if (!f.type.startsWith('image/')) {
+        toast.error('Please choose image files only')
+        return
+      }
+      if (f.size > MAX_PHOTO_BYTES) {
+        toast.error('Each photo must be under 5MB')
+        return
+      }
+      next.push(f)
+    }
+    const room = MAX_BOOKING_PHOTOS - photoUrls.length
+    if (room <= 0) {
+      toast.error(`You can add up to ${MAX_BOOKING_PHOTOS} photos`)
+      return
+    }
+    const toUpload = next.slice(0, room)
+    setPhotoUploading(true)
+    try {
+      await bookingsAPI.uploadBookingPhotos(id, toUpload)
+      toast.success('Photos uploaded')
+      loadBooking()
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Upload failed — check your connection and try again'))
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const submitReport = async () => {
+    if (!id || !reportReason.trim()) {
+      toast.error('Please choose or enter a reason')
+      return
+    }
+    setReportSubmitting(true)
+    try {
+      await bookingsAPI.reportBooking(id, reportReason.trim(), reportDetails.trim() || undefined)
+      toast.success('Report submitted')
+      setReportOpen(false)
+      setReportReason('')
+      setReportDetails('')
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Could not submit report'))
+    } finally {
+      setReportSubmitting(false)
+    }
+  }
+
+  const submitDispute = async () => {
+    if (!id || !disputeReason.trim()) {
+      toast.error('Please describe what went wrong')
+      return
+    }
+    setDisputeSubmitting(true)
+    try {
+      await bookingsAPI.disputeBooking(id, disputeReason.trim())
+      toast.success('We recorded your dispute')
+      setDisputeOpen(false)
+      setDisputeReason('')
+      loadBooking()
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Could not submit dispute'))
+    } finally {
+      setDisputeSubmitting(false)
+    }
+  }
+
+  const blockMechanic = async () => {
+    if (!booking?.mechanic?.id) return
+    if (!window.confirm('Block this mechanic? They will not appear in your searches.')) return
+    setBlockSubmitting(true)
+    try {
+      await usersAPI.blockMechanic(booking.mechanic.id)
+      toast.success('Mechanic blocked')
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Could not block'))
+    } finally {
+      setBlockSubmitting(false)
+    }
+  }
+
+  const payWithPaystack = async () => {
+    if (!booking) return
+    setPaymentLoading('paystack')
+    const run = async () => {
+      const { data } = await walletAPI.initializePayment(booking.id)
+      if (data?.authorizationUrl) {
+        window.location.href = data.authorizationUrl
+        return true
+      }
+      return false
+    }
+    try {
+      const ok = await run()
+      if (!ok) toast.error('Could not start payment')
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to start payment'))
+      toast((t) => (
+        <span className="flex flex-wrap items-center gap-2">
+          Payment could not start.
+          <button
+            type="button"
+            className="font-semibold text-primary-600 underline"
+            onClick={() => {
+              toast.dismiss(t.id)
+              void payWithPaystack()
+            }}
+          >
+            Retry
+          </button>
+        </span>
+      ))
+    } finally {
+      setPaymentLoading(null)
+    }
+  }
+
   if (!booking) {
     return (
       <div className="flex items-center justify-center min-h-[320px]">
@@ -217,35 +416,80 @@ export default function BookingDetail() {
             {booking.status.replace('_', ' ')}
           </span>
         </div>
+        {guidanceLine && (
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed border-l-4 border-primary-200 pl-3">
+            {guidanceLine}
+          </p>
+        )}
+        {booking.openRequestExpiresAt && booking.status === 'REQUESTED' && !booking.mechanicId && (
+          <p className="mt-2 text-xs text-slate-500">
+            Open requests close after{' '}
+            {new Date(booking.openRequestExpiresAt).toLocaleString()}
+            {new Date(booking.openRequestExpiresAt) < new Date()
+              ? ' (expired — refresh if status has not updated).'
+              : '.'}
+          </p>
+        )}
+        {booking.mechanic?.profile?.typicalResponseHours != null &&
+          Number(booking.mechanic.profile.typicalResponseHours) > 0 &&
+          booking.status === 'REQUESTED' &&
+          booking.mechanicId && (
+            <p className="mt-2 text-xs text-slate-600">
+              Usually replies within {booking.mechanic.profile.typicalResponseHours} hour
+              {Number(booking.mechanic.profile.typicalResponseHours) === 1 ? '' : 's'}.
+            </p>
+          )}
+        {directRequestNoQuote24h && (
+          <div className="mt-3 p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm text-slate-700">
+            It has been over 24 hours with no quote yet. You can wait a bit longer, message support, or post an open
+            job for more mechanics.
+          </div>
+        )}
+        {Array.isArray(booking.transactions) && booking.transactions.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {booking.transactions.map((t: any) => (
+              <span
+                key={t.id}
+                className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                  t.status === 'SUCCESS'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : t.status === 'PENDING'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {String(t.type || 'Payment').replace(/_/g, ' ')} · {t.status}
+              </span>
+            ))}
+          </div>
+        )}
+        {(booking.paidAt || booking.status === 'PAID' || booking.status === 'DELIVERED') && (
+          <Link
+            to={`/user/bookings/${booking.id}/receipt`}
+            className="mt-3 inline-flex text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            View payment summary / receipt
+          </Link>
+        )}
         {booking.estimatedCost != null && (
           <p className="mt-3 text-slate-700 font-medium">
             Estimated cost: ₦{Number(booking.estimatedCost).toLocaleString()}
           </p>
         )}
         {/* Payment: show when accepted and not yet paid */}
-        {['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) && !booking.paidAt && booking.estimatedCost != null && booking.estimatedCost > 0 && (
+        {paymentsEnabled &&
+          ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
+          !booking.paidAt &&
+          booking.estimatedCost != null &&
+          booking.estimatedCost > 0 && (
           <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <p className="text-sm font-medium text-slate-700 mb-3">Pay for this job</p>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={async () => {
-                  setPaymentLoading('paystack')
-                  try {
-                    const { data } = await walletAPI.initializePayment(booking.id)
-                    if (data?.authorizationUrl) {
-                      window.location.href = data.authorizationUrl
-                      return
-                    }
-                    toast.error('Could not start payment')
-                  } catch (err) {
-                    toast.error(getApiErrorMessage(err, 'Failed to start payment'))
-                  } finally {
-                    setPaymentLoading(null)
-                  }
-                }}
+                onClick={() => void payWithPaystack()}
                 disabled={paymentLoading != null}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-70"
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-70"
               >
                 {paymentLoading === 'paystack' ? (
                   <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -264,12 +508,38 @@ export default function BookingDetail() {
                     loadBooking()
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, 'Failed to update'))
+                    toast((t) => (
+                      <span className="flex flex-wrap items-center gap-2">
+                        Could not update payment.
+                        <button
+                          type="button"
+                          className="font-semibold text-primary-600 underline"
+                          onClick={() => {
+                            toast.dismiss(t.id)
+                            void (async () => {
+                              setPaymentLoading('direct')
+                              try {
+                                await walletAPI.markDirectPaid(booking.id)
+                                toast.success('Marked as paid directly to mechanic')
+                                loadBooking()
+                              } catch (e2) {
+                                toast.error(getApiErrorMessage(e2, 'Failed to update'))
+                              } finally {
+                                setPaymentLoading(null)
+                              }
+                            })()
+                          }}
+                        >
+                          Retry
+                        </button>
+                      </span>
+                    ))
                   } finally {
                     setPaymentLoading(null)
                   }
                 }}
                 disabled={paymentLoading != null}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 disabled:opacity-70"
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] border border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 disabled:opacity-70"
               >
                 {paymentLoading === 'direct' ? (
                   <span className="inline-block h-4 w-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
@@ -284,6 +554,13 @@ export default function BookingDetail() {
             </p> */}
           </div>
         )}
+        {!paymentsEnabled &&
+          ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
+          !booking.paidAt &&
+          booking.estimatedCost != null &&
+          booking.estimatedCost > 0 && (
+            <p className="mt-3 text-sm text-slate-600">Online payments are not available in your region yet.</p>
+          )}
         {booking.status === 'DONE' && !showRating && (
           <button
             onClick={() => setShowRating(true)}
@@ -302,11 +579,11 @@ export default function BookingDetail() {
           {booking.mechanicId ? 'Pre-job discussion (for records)' : 'Job details for mechanics'}
         </h2>
         <p className="text-sm text-slate-600 mb-4">
-          {booking.mechanicId
+          {booking.mechanicId && booking.status !== 'REQUESTED'
             ? 'Summary of what you shared before accepting a quote. The mechanic uses this for the job.'
             : 'Add or edit details so mechanics can give you a better price. They can also ask a few short questions.'}
         </p>
-        {booking.status === 'REQUESTED' && !booking.mechanicId ? (
+        {booking.status === 'REQUESTED' ? (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Your description</label>
@@ -325,6 +602,32 @@ export default function BookingDetail() {
               >
                 {descSaving ? 'Saving…' : 'Save'}
               </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Photos of the issue (optional, up to {MAX_BOOKING_PHOTOS}, max 5MB each)
+              </label>
+              {photoUrls.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {photoUrls.map((url: string) => (
+                    <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                      <img src={url} alt="" className="h-24 w-24 object-cover rounded-lg border border-slate-200" />
+                    </a>
+                  ))}
+                </div>
+              )}
+              <label className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
+                <ImagePlus className="h-4 w-4 text-primary-600" />
+                {photoUploading ? 'Uploading…' : 'Add photos'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="sr-only"
+                  disabled={photoUploading || photoUrls.length >= MAX_BOOKING_PHOTOS}
+                  onChange={(e) => void handlePhotoFiles(e.target.files)}
+                />
+              </label>
             </div>
             {Array.isArray(booking.clarifications) && booking.clarifications.length > 0 &&
               booking.clarifications.map((c: any) => (
@@ -361,12 +664,27 @@ export default function BookingDetail() {
                 </div>
               ))}
           </div>
-        ) : (booking.description || (Array.isArray(booking.clarifications) && booking.clarifications.length > 0)) ? (
+        ) : booking.status !== 'REQUESTED' &&
+          (booking.description ||
+            (Array.isArray(booking.clarifications) && booking.clarifications.length > 0) ||
+            photoUrls.length > 0) ? (
           <div className="space-y-4">
             {booking.description && (
               <div>
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Your description</p>
                 <p className="text-slate-700 mt-0.5 whitespace-pre-wrap">{booking.description}</p>
+              </div>
+            )}
+            {photoUrls.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Photos you shared</p>
+                <div className="flex flex-wrap gap-2">
+                  {photoUrls.map((url: string) => (
+                    <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="h-28 w-28 object-cover rounded-lg border border-slate-200" />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
             {Array.isArray(booking.clarifications) && booking.clarifications.length > 0 && (
@@ -402,11 +720,29 @@ export default function BookingDetail() {
         )}
       </div>
 
+      {booking.status === 'REQUESTED' &&
+        booking.mechanicId &&
+        Array.isArray(booking.quotes) &&
+        booking.quotes.filter((q: any) => q.status === 'PENDING').length === 0 && (
+          <div className="card p-4 mb-6 border-amber-100 bg-amber-50/80">
+            <p className="text-sm font-medium text-amber-900">
+              Waiting for {booking.mechanic?.companyName ?? 'the mechanic'} to send a quote
+            </p>
+            <p className="text-sm text-amber-800/90 mt-1">
+              You’ll be able to chat once you accept their price.
+            </p>
+          </div>
+        )}
+
       {/* Quotes from mechanics (when still REQUESTED) — real-time updates */}
       {booking.status === 'REQUESTED' && Array.isArray(booking.quotes) && booking.quotes.length > 0 && (
         <div className="card p-5 mb-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-3">Quotes from mechanics</h2>
-          <p className="text-sm text-slate-600 mb-4">Accept one or reject any you don’t want.</p>
+          <p className="text-sm text-slate-600 mb-2">Accept one or reject any you don’t want.</p>
+          <p className="text-xs text-slate-500 mb-4">
+            Mechanics can update their price a limited number of times after your answers or new details — check back
+            if a quote changes.
+          </p>
           <ul className="space-y-3">
             {booking.quotes
               .filter((q: any) => q.status === 'PENDING')
@@ -440,7 +776,7 @@ export default function BookingDetail() {
                       type="button"
                       onClick={() => rejectQuote(q.id)}
                       disabled={quoteActionLoading != null}
-                      className="px-3 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-60"
+                      className="px-4 py-2.5 min-h-[48px] text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-60"
                     >
                       Reject
                     </button>
@@ -448,7 +784,7 @@ export default function BookingDetail() {
                       type="button"
                       onClick={() => acceptQuote(q.id)}
                       disabled={quoteActionLoading != null}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[48px] text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-60"
                     >
                       {quoteActionLoading === q.id ? (
                         <span className="inline-block h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -463,6 +799,72 @@ export default function BookingDetail() {
           </ul>
           {booking.quotes.filter((q: any) => q.status === 'PENDING').length === 0 && (
             <p className="text-sm text-slate-500">No pending quotes. Accept one above or wait for more.</p>
+          )}
+        </div>
+      )}
+
+      {historicalQuotes.length > 0 && (
+        <div className="card p-5 mb-6 border-slate-200 bg-slate-50/50">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">Earlier quotes (read-only)</h2>
+          <p className="text-sm text-slate-600 mb-3">Withdrawn or rejected quotes stay visible for your records.</p>
+          <ul className="space-y-2 text-sm">
+            {historicalQuotes.map((q: any) => (
+              <li
+                key={q.id}
+                className="flex flex-wrap justify-between gap-2 py-2 border-b border-slate-200 last:border-0"
+              >
+                <span className="text-slate-700">
+                  {q.mechanic?.companyName ?? 'Mechanic'} — {'\u20A6'}
+                  {Number(q.proposedPrice).toLocaleString()}
+                </span>
+                <span className="text-slate-500 font-medium">{quoteStatusLabel(q.status)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {booking.status !== 'EXPIRED' && (
+        <div className="card p-5 mb-6 border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">Safety &amp; support</h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Report problems with this job or user. For payment or quality issues, you can open a dispute.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
+            >
+              <Flag className="h-4 w-4" />
+              Report
+            </button>
+            {['ACCEPTED', 'IN_PROGRESS', 'DONE', 'PAID', 'DELIVERED'].includes(booking.status) && (
+              <button
+                type="button"
+                onClick={() => setDisputeOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-sm font-medium hover:bg-amber-100"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Something wrong with this job?
+              </button>
+            )}
+            {booking.mechanic?.id && (
+              <button
+                type="button"
+                onClick={() => void blockMechanic()}
+                disabled={blockSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] rounded-xl border border-red-200 text-red-800 text-sm font-medium hover:bg-red-50 disabled:opacity-60"
+              >
+                <Ban className="h-4 w-4" />
+                {blockSubmitting ? 'Blocking…' : 'Block mechanic'}
+              </button>
+            )}
+          </div>
+          {booking.disputeReason && (
+            <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              Dispute recorded: {booking.disputeReason}
+            </p>
           )}
         </div>
       )}
@@ -492,7 +894,7 @@ export default function BookingDetail() {
       {/* Chat — only after a quote has been accepted */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-slate-800 mb-3">Conversation</h2>
-        {booking.mechanicId ? (
+        {booking.mechanicId && booking.status !== 'REQUESTED' ? (
           <BookingChat
             messages={messages}
             currentUserId={currentUser?.id ?? ''}
@@ -503,20 +905,126 @@ export default function BookingDetail() {
         ) : (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
             <p className="font-medium text-slate-700">Chat is available after you accept a quote</p>
-            <p className="mt-1 text-sm">Accept one of the quotes above to start the conversation with that mechanic.</p>
+            <p className="mt-1 text-sm">
+              {booking.mechanicId
+                ? 'Accept the mechanic’s quote above to start messaging about this job.'
+                : 'Accept one of the quotes above to start the conversation with that mechanic.'}
+            </p>
           </div>
         )}
       </div>
 
       {/* Rating modal */}
+      {reportOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-booking-title"
+        >
+          <div className="card p-6 max-w-md w-full">
+            <h3 id="report-booking-title" className="font-semibold text-slate-800 mb-3">
+              Report this job
+            </h3>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Reason</label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-3"
+            >
+              <option value="">Choose…</option>
+              <option value="HARASSMENT">Harassment or abuse</option>
+              <option value="SAFETY">Safety concern</option>
+              <option value="SPAM">Spam or misleading</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Details (optional)</label>
+            <textarea
+              value={reportDetails}
+              onChange={(e) => setReportDetails(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setReportOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitReport()}
+                disabled={reportSubmitting}
+                className="px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium disabled:opacity-60"
+              >
+                {reportSubmitting ? 'Sending…' : 'Submit report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {disputeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dispute-booking-title"
+        >
+          <div className="card p-6 max-w-md w-full">
+            <h3 id="dispute-booking-title" className="font-semibold text-slate-800 mb-2">
+              Something wrong with this job?
+            </h3>
+            <p className="text-sm text-slate-600 mb-3">
+              Briefly describe the issue (payment, quality, or no-show). We’ll use this with your booking record.
+            </p>
+            <textarea
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-4"
+              placeholder="What happened?"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setDisputeOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitDispute()}
+                disabled={disputeSubmitting}
+                className="px-4 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-medium disabled:opacity-60"
+              >
+                {disputeSubmitting ? 'Sending…' : 'Submit dispute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showRating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rating-modal-title"
+        >
           <div className="card p-6 max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-slate-800">Rate this mechanic</h3>
+              <h3 id="rating-modal-title" className="font-semibold text-slate-800">
+                Rate this mechanic
+              </h3>
               <button
+                type="button"
                 onClick={() => setShowRating(false)}
                 className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
