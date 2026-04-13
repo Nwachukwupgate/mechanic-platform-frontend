@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { reverseGeocode } from '../../services/geocoding'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { MECHANIC_VEHICLE_TYPES, EXPERTISE_OPTIONS, CAR_BRANDS } from '../../constants/vehicles'
-import { Upload, FileText, X, MapPin, User, Trash2 } from 'lucide-react'
+import { Upload, FileText, X, MapPin, User, Trash2, ImagePlus } from 'lucide-react'
 
 type ProfileForm = {
   phone: string
@@ -127,9 +127,7 @@ export default function MechanicProfile() {
     setValue(field, next)
   }
 
-  const handleCertificateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const uploadCertificateFile = async (file: File) => {
     const allowed = ['application/pdf', 'image/jpeg', 'image/png']
     if (!allowed.includes(file.type)) {
       toast.error('Only PDF and images (JPEG, PNG) are allowed')
@@ -143,12 +141,19 @@ export default function MechanicProfile() {
     try {
       const res = await mechanicsAPI.uploadCertificate(file)
       setCertificateUrl(res.data.certificateUrl)
+      toast.success('Certificate uploaded')
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to upload certificate'))
     } finally {
       setCertificateUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const handleCertificateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadCertificateFile(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeCertificate = () => {
@@ -284,11 +289,23 @@ export default function MechanicProfile() {
         await mechanicsAPI.updateProfile(payload)
         toast.success('Profile updated successfully')
       } catch (firstError) {
-        // Production backend may not support "brands" yet — retry without it so the rest of the profile saves
         if (isPropertyNotAllowedError(firstError, 'brands')) {
           const { brands: _b, ...payloadWithoutBrands } = payload as typeof payload & { brands?: unknown }
           await mechanicsAPI.updateProfile(payloadWithoutBrands)
           toast.success('Profile updated. Car brands could not be saved (server does not support this yet).')
+        } else if (
+          isPropertyNotAllowedError(firstError, 'typicalResponseHours') ||
+          isPropertyNotAllowedError(firstError, 'nextAvailableNote')
+        ) {
+          const {
+            typicalResponseHours: _h,
+            nextAvailableNote: _n,
+            ...payloadWithoutAvailabilityFields
+          } = payload
+          await mechanicsAPI.updateProfile(payloadWithoutAvailabilityFields)
+          toast.success(
+            'Profile updated. Reply-time fields could not be saved — update the API or redeploy the latest backend.'
+          )
         } else {
           throw firstError
         }
@@ -544,45 +561,71 @@ export default function MechanicProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Certificate <span className="text-red-500">*</span>
             </label>
+            <p className="text-xs text-gray-500 mb-2">PDF or clear photo of your certificate. Max 5MB.</p>
             <input
               ref={fileInputRef}
               type="file"
               accept=".pdf,image/jpeg,image/png"
               onChange={handleCertificateChange}
-              className="hidden"
+              className="sr-only"
             />
             {certificateUrl ? (
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
-                <FileText className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200 bg-slate-50/80 shadow-sm">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-slate-100">
+                  <FileText className="h-6 w-6 text-primary-600" />
+                </div>
                 <a
                   href={certificateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary-600 underline truncate flex-1"
+                  className="text-primary-700 font-medium hover:underline truncate flex-1 min-w-0"
                 >
-                  View certificate
+                  View uploaded certificate
                 </a>
                 <button
                   type="button"
                   onClick={removeCertificate}
-                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-xl"
                   title="Remove"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                disabled={certificateUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => !certificateUploading && fileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const f = e.dataTransfer.files?.[0]
+                  if (f) void uploadCertificateFile(f)
+                }}
+                className={`relative rounded-2xl border-2 border-dashed border-primary-200/90 bg-gradient-to-br from-primary-50/50 via-white to-slate-50/40 px-4 py-8 text-center transition-colors hover:border-primary-300 ${
+                  certificateUploading ? 'opacity-60 pointer-events-none' : 'cursor-pointer'
+                }`}
               >
-                <Upload className="h-4 w-4" />
-                {certificateUploading ? 'Uploading…' : 'Upload certificate (PDF or image)'}
-              </button>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-primary-100">
+                    <ImagePlus className="h-7 w-7 text-primary-600" aria-hidden />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {certificateUploading ? 'Uploading…' : 'Drop certificate here or tap to browse'}
+                  </p>
+                  <p className="text-xs text-slate-500">PDF, JPEG, or PNG · up to 5MB</p>
+                  <span className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-primary-700">
+                    <Upload className="h-3.5 w-3.5" />
+                    Choose file
+                  </span>
+                </div>
+              </div>
             )}
-            <p className="text-xs text-gray-500 mt-1">PDF or image, max 5MB</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

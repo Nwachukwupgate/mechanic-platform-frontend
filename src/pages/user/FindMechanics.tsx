@@ -1,10 +1,49 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { vehiclesAPI, faultsAPI, bookingsAPI, getApiErrorMessage } from '../../services/api'
-import { reverseGeocode } from '../../services/geocoding'
+import { reverseGeocode, searchAddress, type GeocodeSearchResult } from '../../services/geocoding'
 import { MechanicsMap } from '../../components/MechanicsMap'
-import { MapPin, Star, CheckCircle2, User, List, Map } from 'lucide-react'
+import { MapPin, Star, CheckCircle2, User, List, Map, ImagePlus, X, Search, Navigation } from 'lucide-react'
+
+const LOCATION_STORAGE_KEY = 'findMechanics:lastLocation'
+const LOCATION_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+function loadStoredLocation(): { lat: number; lng: number } | null {
+  try {
+    const raw = sessionStorage.getItem(LOCATION_STORAGE_KEY)
+    if (!raw) return null
+    const p = JSON.parse(raw) as { lat: number; lng: number; t: number }
+    if (
+      !p ||
+      typeof p.lat !== 'number' ||
+      typeof p.lng !== 'number' ||
+      typeof p.t !== 'number' ||
+      !Number.isFinite(p.lat) ||
+      !Number.isFinite(p.lng)
+    ) {
+      return null
+    }
+    if (Date.now() - p.t > LOCATION_MAX_AGE_MS) return null
+    return { lat: p.lat, lng: p.lng }
+  } catch {
+    return null
+  }
+}
+
+function saveStoredLocation(lat: number, lng: number) {
+  try {
+    sessionStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({ lat, lng, t: Date.now() }))
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+function getCurrentPositionAsync(options: PositionOptions): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options)
+  })
+}
 
 export default function FindMechanics() {
   const [vehicles, setVehicles] = useState<any[]>([])
@@ -24,91 +63,198 @@ export default function FindMechanics() {
   const [minRating, setMinRating] = useState<number | ''>('')
   const [availableOnly, setAvailableOnly] = useState(false)
   const [jobPhotos, setJobPhotos] = useState<File[]>([])
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressLookupLoading, setAddressLookupLoading] = useState(false)
+  const [addressSuggestions, setAddressSuggestions] = useState<GeocodeSearchResult[]>([])
+  const jobPhotoInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
+  const photoPreviewUrls = useMemo(() => jobPhotos.map((f) => URL.createObjectURL(f)), [jobPhotos])
   useEffect(() => {
-    // Fetch vehicles (requires authentication)
+    return () => photoPreviewUrls.forEach((u) => URL.revokeObjectURL(u))
+  }, [photoPreviewUrls])
+
+  const applyLocationCoords = useCallback(async (lat: number, lng: number, labelOverride?: string | null) => {
+    setUserLocation({ lat, lng })
+    saveStoredLocation(lat, lng)
+    setLocationError(null)
+    if (labelOverride) {
+      setUserLocationAddress(labelOverride)
+    } else {
+      try {
+        const address = await reverseGeocode(lat, lng)
+        setUserLocationAddress(address)
+      } catch {
+        setUserLocationAddress(null)
+      }
+    }
+  }, [])
+
+  const getCurrentLocation = useCallback(async (userClicked: boolean) => {
+    if (!navigator.geolocation) {
+      setLocationError('Location is not supported by your browser. Use the address search below instead.')
+      setLocationLoading(false)
+      return
+    }
+    setLocationError(null)
+    setLocationLoading(true)
+    setAddressSuggestions([])
+
+    const attempts: PositionOptions[] = [
+      { enableHighAccuracy: false, timeout: 22000, maximumAge: 5 * 60 * 1000 },
+      { enableHighAccuracy: true, timeout: 28000, maximumAge: 0 },
+    ]
+
+    let lastCode: number | null = null
+    for (const opts of attempts) {
+      try {
+        const position = await getCurrentPositionAsync(opts)
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        setLocationLoading(false)
+        await applyLocationCoords(lat, lng)
+        if (userClicked) toast.success('Location set from your device')
+        return
+      } catch (err) {
+        const geoErr = err as GeolocationPositionError
+        if (geoErr && typeof geoErr.code === 'number') lastCode = geoErr.code
+      }
+    }
+
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        let watchId = 0
+        const timer = window.setTimeout(() => {
+          navigator.geolocation.clearWatch(watchId)
+          reject(new Error('watch-timeout'))
+        }, 14000)
+        watchId = navigator.geolocation.watchPosition(
+          (p) => {
+            window.clearTimeout(timer)
+            navigator.geolocation.clearWatch(watchId)
+            resolve(p)
+          },
+          (err) => {
+            window.clearTimeout(timer)
+            navigator.geolocation.clearWatch(watchId)
+            reject(err)
+          },
+          { enableHighAccuracy: true, maximumAge: 0 }
+        )
+      })
+      const lat = pos.coords.latitude
+      const lng = pos.coords.longitude
+      setLocationLoading(false)
+      await applyLocationCoords(lat, lng)
+      if (userClicked) toast.success('Location set from your device')
+      return
+    } catch {
+      /* continue to error message */
+    }
+
+    setLocationLoading(false)
+    switch (lastCode) {
+      case 1: // PERMISSION_DENIED
+        setLocationError(
+          'Location access was denied. Allow location in your browser settings, or set your location with the address search below.'
+        )
+        break
+      case 2: // POSITION_UNAVAILABLE
+      case 3: // TIMEOUT
+        setLocationError(
+          'GPS could not fix your position (common on desktop or indoors). Try "Use my location" again, or search for an address below.'
+        )
+        break
+      default:
+        setLocationError('Could not detect your location automatically. Use the address search below or try again.')
+    }
+  }, [applyLocationCoords])
+
+  useEffect(() => {
     vehiclesAPI
       .getAll()
       .then((res) => {
-        console.log('Vehicles response:', res.data)
         setVehicles(res.data || [])
       })
-      .catch((error) => {
-        console.error('Error fetching vehicles:', error)
-        console.error('Error details:', error.response?.data)
+      .catch(() => {
         setVehicles([])
       })
 
-    // Fetch faults (public endpoint)
     faultsAPI
       .getAll()
       .then((res) => {
-        console.log('Faults response:', res.data)
         setFaults(res.data || [])
       })
-      .catch((error) => {
-        console.error('Error fetching faults:', error)
-        console.error('Error details:', error.response?.data)
+      .catch(() => {
         setFaults([])
       })
 
-    // Try to get location on load (no alert on failure – user can click "Use my location" to confirm)
-    getCurrentLocation()
+    const cached = loadStoredLocation()
+    if (cached) {
+      setUserLocation(cached)
+      reverseGeocode(cached.lat, cached.lng)
+        .then(setUserLocationAddress)
+        .catch(() => setUserLocationAddress(null))
+    }
+
+    void getCurrentLocation(false)
+    // Intentionally once on mount; getCurrentLocation is stable via useCallback
   }, [])
 
-  const getCurrentLocation = (isRetry = false) => {
-    if (!navigator.geolocation) {
-      setLocationError('Location is not supported by your browser.')
+  const lookupAddress = async () => {
+    const q = addressQuery.trim()
+    if (q.length < 3) {
+      toast.error('Enter at least 3 characters (e.g. city or street)')
       return
     }
-    if (!isRetry) {
-      setLocationError(null)
-      setLocationLoading(true)
+    setAddressLookupLoading(true)
+    setAddressSuggestions([])
+    setLocationError(null)
+    try {
+      const results = await searchAddress(q)
+      if (results.length === 0) {
+        toast.error('No results — try a nearby city or landmark')
+        return
+      }
+      setAddressSuggestions(results)
+      if (results.length === 1) {
+        const r = results[0]
+        await applyLocationCoords(r.lat, r.lng, r.label)
+        setAddressSuggestions([])
+        toast.success('Location set from address')
+      }
+    } catch {
+      toast.error('Address lookup failed. Check your connection and try again.')
+    } finally {
+      setAddressLookupLoading(false)
     }
-    const options: PositionOptions = {
-      enableHighAccuracy: false,
-      timeout: 20000, // 20s – kCLErrorLocationUnknown often needs a bit longer
-      maximumAge: 10 * 60 * 1000, // Accept cached position up to 10 minutes
+  }
+
+  const selectSuggestion = async (r: GeocodeSearchResult) => {
+    setAddressSuggestions([])
+    setAddressQuery(r.label)
+    await applyLocationCoords(r.lat, r.lng, r.label)
+    toast.success('Location set')
+  }
+
+  const addJobPhotoFiles = (files: FileList | File[]) => {
+    const list = Array.from(files).filter((f) => ['image/jpeg', 'image/png', 'image/webp'].includes(f.type))
+    if (list.length === 0) {
+      toast.error('Use JPEG, PNG, or WebP images')
+      return
     }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        setUserLocation({ lat, lng })
-        setLocationLoading(false)
-        setLocationError(null)
-        try {
-          const address = await reverseGeocode(lat, lng)
-          setUserLocationAddress(address)
-        } catch {
-          setUserLocationAddress(null)
-        }
-      },
-      (error: GeolocationPositionError) => {
-        // kCLErrorLocationUnknown → POSITION_UNAVAILABLE; often temporary – retry once
-        const canRetry = error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT
-        if (!isRetry && canRetry) {
-          setTimeout(() => getCurrentLocation(true), 1500)
-          return
-        }
-        setLocationLoading(false)
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError('Location access was denied. Allow location in your browser (or click the lock/address bar icon) and try "Use my location" again.')
-            break
-          case error.POSITION_UNAVAILABLE:
-            setLocationError('Location could not be determined (e.g. still acquiring or no GPS). Click "Use my location" to try again.')
-            break
-          case error.TIMEOUT:
-            setLocationError('Location request timed out. Click "Use my location" to try again.')
-            break
-          default:
-            setLocationError('Unable to get your location. Click "Use my location" to try again.')
-        }
-      },
-      options
-    )
+    const maxBytes = 5 * 1024 * 1024
+    for (const f of list) {
+      if (f.size > maxBytes) {
+        toast.error('Each photo must be under 5MB')
+        return
+      }
+    }
+    setJobPhotos((prev) => [...prev, ...list].slice(0, 3))
+  }
+
+  const removeJobPhotoAt = (index: number) => {
+    setJobPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
   const searchMechanics = async () => {
@@ -228,28 +374,71 @@ export default function FindMechanics() {
             </select>
           </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Your location
-          </label>
+        <div className="mb-4 space-y-3">
+          <label className="block text-sm font-medium text-slate-800">Your location</label>
+          <p className="text-xs text-slate-500 -mt-1">
+            Needed to sort mechanics by distance. GPS works best on phones; on desktop, search for your area below.
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => getCurrentLocation()}
+              onClick={() => void getCurrentLocation(true)}
               disabled={locationLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 hover:border-primary-200 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
             >
-              <MapPin className="h-4 w-4 text-gray-600" />
+              <Navigation className={`h-4 w-4 text-primary-600 ${locationLoading ? 'animate-pulse' : ''}`} />
               {locationLoading ? 'Getting location…' : 'Use my location'}
             </button>
             {userLocation && !locationLoading && (
-              <span className="text-sm text-primary-700">
-                ✓ {userLocationAddress || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
+              <span className="text-sm text-primary-800 font-medium inline-flex items-center gap-1 max-w-[min(100%,28rem)]">
+                <MapPin className="h-4 w-4 shrink-0 text-primary-600" />
+                <span className="truncate">
+                  {userLocationAddress || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
+                </span>
               </span>
             )}
           </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
+              Or search an address / area
+            </span>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={addressQuery}
+                onChange={(e) => setAddressQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), void lookupAddress())}
+                placeholder="e.g. Ikeja Lagos, Port Harcourt, Wuse Abuja"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+              />
+              <button
+                type="button"
+                onClick={() => void lookupAddress()}
+                disabled={addressLookupLoading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-60 shrink-0"
+              >
+                <Search className="h-4 w-4" />
+                {addressLookupLoading ? 'Searching…' : 'Look up'}
+              </button>
+            </div>
+            {addressSuggestions.length > 0 && (
+              <ul className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white overflow-hidden">
+                {addressSuggestions.map((r, i) => (
+                  <li key={`${r.lat}-${r.lng}-${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => void selectSuggestion(r)}
+                      className="w-full text-left px-3 py-2.5 text-sm text-slate-800 hover:bg-primary-50 transition-colors"
+                    >
+                      {r.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {locationError && (
-            <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
               {locationError}
             </p>
           )}
@@ -296,29 +485,74 @@ export default function FindMechanics() {
           </div>
         </div>
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Photos of the issue (optional, up to 3, max 5MB each)
-          </label>
+          <label className="block text-sm font-medium text-slate-800 mb-1">Photos of the issue (optional)</label>
+          <p className="text-xs text-slate-500 mb-3">Up to 3 images · JPEG, PNG or WebP · max 5MB each · added after you create the job</p>
           <input
+            ref={jobPhotoInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
-            className="block w-full text-sm text-gray-600"
+            className="sr-only"
             onChange={(e) => {
-              const files = e.target.files ? Array.from(e.target.files).slice(0, 3) : []
-              const maxBytes = 5 * 1024 * 1024
-              for (const f of files) {
-                if (f.size > maxBytes) {
-                  toast.error('Each photo must be under 5MB')
-                  e.target.value = ''
-                  return
-                }
-              }
-              setJobPhotos(files)
+              if (e.target.files?.length) addJobPhotoFiles(e.target.files)
+              e.target.value = ''
             }}
           />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => jobPhotoInputRef.current?.click()}
+            onKeyDown={(e) => e.key === 'Enter' && jobPhotoInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (e.dataTransfer.files?.length) addJobPhotoFiles(e.dataTransfer.files)
+            }}
+            className={`relative rounded-2xl border-2 border-dashed transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 ${
+              jobPhotos.length >= 3
+                ? 'border-slate-200 bg-slate-50 opacity-70 pointer-events-none'
+                : 'border-primary-200/80 bg-gradient-to-br from-primary-50/40 via-white to-slate-50/50 hover:border-primary-300 hover:from-primary-50/60'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-8 px-4 text-center sm:text-left">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-primary-100">
+                <ImagePlus className="h-7 w-7 text-primary-600" aria-hidden />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  {jobPhotos.length >= 3 ? 'Maximum 3 photos' : 'Drop photos here or tap to browse'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {jobPhotos.length}/3 selected — helps mechanics quote accurately
+                </p>
+              </div>
+            </div>
+          </div>
           {jobPhotos.length > 0 && (
-            <p className="text-xs text-gray-500 mt-1">{jobPhotos.length} photo(s) will upload after you create the job.</p>
+            <ul className="mt-3 flex flex-wrap gap-3 list-none p-0">
+              {jobPhotos.map((file, index) => (
+                <li key={`${file.name}-${file.size}-${index}`} className="relative group">
+                  <img
+                    src={photoPreviewUrls[index]}
+                    alt=""
+                    className="h-24 w-24 rounded-xl object-cover border border-slate-200 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeJobPhotoAt(index)}
+                    className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white shadow-md opacity-90 hover:opacity-100"
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <p className="mt-1 max-w-[6rem] truncate text-[10px] text-slate-500">{file.name}</p>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
