@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { walletAPI, getApiErrorMessage } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -20,6 +20,8 @@ const statusBadge: Record<string, { class: string; label: string }> = {
 
 export default function UserWallet() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const verifyStarted = useRef(false)
   const [transactions, setTransactions] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -36,27 +38,45 @@ export default function UserWallet() {
       .finally(() => setLoading(false))
   }, [])
 
+  /** Paystack redirects here: `/user/wallet?bookingId=…&reference=…&trxref=…` */
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('trxref')
-    if (!reference || verifying) return
+    if (!reference) {
+      verifyStarted.current = false
+      return
+    }
+    if (verifyStarted.current) return
+    verifyStarted.current = true
+
+    const bookingId = searchParams.get('bookingId')
     setVerifying(true)
+
     walletAPI
-      .verifyPayment(reference)
-      .then((res) => {
+      .verifyPayment(reference.trim())
+      .then(() => {
         toast.success('Payment confirmed')
-        setSearchParams({}, { replace: true })
-        walletAPI.getTransactions({ limit: 50 }).then((r) => {
-          setTransactions(r.data.items || [])
-          setTotal(r.data.total ?? 0)
-        })
+        return walletAPI.getTransactions({ limit: 50 })
+      })
+      .then((r) => {
+        setTransactions(r.data.items || [])
+        setTotal(r.data.total ?? 0)
+        if (bookingId) {
+          navigate(`/user/bookings/${encodeURIComponent(bookingId)}`, { replace: true })
+        } else {
+          setSearchParams({}, { replace: true })
+        }
       })
       .catch((err) => {
+        verifyStarted.current = false
         const msg = getApiErrorMessage(err, 'Verification failed')
-        if (!msg.toLowerCase().includes('already processed')) toast.error(msg)
+        const benign =
+          msg.toLowerCase().includes('already processed') ||
+          msg.toLowerCase().includes('not found or already processed')
+        if (!benign) toast.error(msg)
         setSearchParams({}, { replace: true })
       })
       .finally(() => setVerifying(false))
-  }, [searchParams.get('reference'), searchParams.get('trxref')])
+  }, [searchParams, navigate, setSearchParams])
 
   if (loading && !verifying) {
     return (

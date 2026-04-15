@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Trash2 } from 'lucide-react'
+import { Trash2, RefreshCw, CalendarCheck, ListOrdered } from 'lucide-react'
 import { usersAPI, getApiErrorMessage } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import Avatar from '../../components/Avatar'
 import { DeleteAccountSheet } from '../../components/DeleteAccountSheet'
 
@@ -19,17 +18,20 @@ export default function UserProfile() {
   const [deletingAccount, setDeletingAccount] = useState(false)
   const { register, handleSubmit, setValue, reset } = useForm()
 
-  useEffect(() => {
-    usersAPI
+  const loadProfile = useCallback(() => {
+    return usersAPI
       .getProfile()
       .then((res) => {
         setProfile(res.data)
         setValue('phone', res.data.profile?.phone || '')
         setValue('address', res.data.profile?.address || '')
-        setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {})
   }, [setValue])
+
+  useEffect(() => {
+    loadProfile().finally(() => setLoading(false))
+  }, [loadProfile])
 
   const onSubmit = async (data: any) => {
     try {
@@ -61,21 +63,56 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner variant="logo" size="lg" />
+      <div className="max-w-2xl space-y-4 animate-pulse">
+        <div className="h-28 rounded-2xl bg-gradient-to-r from-primary-100/60 to-slate-100" />
+        <div className="h-48 rounded-xl bg-slate-100 border border-slate-50" />
       </div>
     )
   }
 
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Profile'
+  const stats = profile?.stats as { totalBookings?: number; completedBookings?: number } | undefined
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-4 mb-6 sm:mb-8">
-        <Avatar name={fullName} size="lg" ring className="shrink-0" />
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Profile</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{profile?.email}</p>
+      <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm mb-6 bg-gradient-to-br from-primary-50 via-white to-slate-50">
+        <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <Avatar name={fullName} size="lg" ring className="shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">{fullName}</h1>
+            <p className="text-sm text-slate-600 mt-0.5 truncate">{profile?.email}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3 max-w-xs">
+              <div className="rounded-xl bg-white/90 border border-slate-100 px-3 py-2 flex items-center gap-2">
+                <ListOrdered className="h-4 w-4 text-primary-600 shrink-0" />
+                <div>
+                  <p className="text-lg font-bold text-slate-900 leading-none">
+                    {stats?.totalBookings != null ? stats.totalBookings : '—'}
+                  </p>
+                  <p className="text-[10px] font-semibold uppercase text-slate-500 mt-0.5">Bookings</p>
+                </div>
+              </div>
+              <div className="rounded-xl bg-white/90 border border-slate-100 px-3 py-2 flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4 text-primary-600 shrink-0" />
+                <div>
+                  <p className="text-lg font-bold text-slate-900 leading-none">
+                    {stats?.completedBookings != null ? stats.completedBookings : '—'}
+                  </p>
+                  <p className="text-[10px] font-semibold uppercase text-slate-500 mt-0.5">Completed</p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true)
+                void loadProfile().finally(() => setLoading(false))
+              }}
+              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6">

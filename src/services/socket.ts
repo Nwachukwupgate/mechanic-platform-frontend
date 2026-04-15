@@ -51,6 +51,24 @@ export type QuoteAcceptedPayload = {
  * Subscribe to real-time quote events. Call the returned function to unsubscribe.
  * Ensures socket is connected.
  */
+export type BookingStatusChangedPayload = {
+  bookingId: string
+  status: string
+  userId: string
+  mechanicId: string | null
+}
+
+/** Booking paid / status updates (matches backend ChatGateway `booking:statusChanged`). */
+export function onBookingStatusChanged(
+  cb: (payload: BookingStatusChangedPayload) => void,
+): () => void {
+  const s = connectSocket()
+  s.on('booking:statusChanged', cb)
+  return () => {
+    s.off('booking:statusChanged', cb)
+  }
+}
+
 export function onQuoteEvents(handlers: {
   onQuoteCreated?: (payload: QuoteCreatedPayload) => void
   onQuoteUpdated?: (payload: QuoteUpdatedPayload) => void

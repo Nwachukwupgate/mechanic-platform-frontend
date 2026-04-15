@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { bookingsAPI, ratingsAPI, walletAPI, getApiErrorMessage, configAPI, usersAPI } from '../../services/api'
-import { connectSocket, getSocket, onQuoteEvents } from '../../services/socket'
+import { connectSocket, getSocket, onQuoteEvents, onBookingStatusChanged } from '../../services/socket'
 import { useAuthStore } from '../../store/authStore'
 import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -93,9 +93,13 @@ export default function BookingDetail() {
       onQuoteUpdated: (p) => p.bookingId === id && loadBookingRef.current(),
       onQuoteAccepted: (p) => p.bookingId === id && loadBookingRef.current(),
     })
+    const unsubPaid = onBookingStatusChanged((p) => {
+      if (p.bookingId === id) loadBookingRef.current()
+    })
     return () => {
       if (socket) socket.off('new_message')
       unsub()
+      unsubPaid()
     }
   }, [id])
 

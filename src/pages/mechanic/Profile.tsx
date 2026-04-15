@@ -1,13 +1,28 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { mechanicsAPI, getApiErrorMessage, isPropertyNotAllowedError } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { reverseGeocode } from '../../services/geocoding'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import { MECHANIC_VEHICLE_TYPES, EXPERTISE_OPTIONS, CAR_BRANDS } from '../../constants/vehicles'
-import { Upload, FileText, X, MapPin, User, Trash2, ImagePlus } from 'lucide-react'
+import {
+  Upload,
+  FileText,
+  X,
+  MapPin,
+  User,
+  Trash2,
+  ImagePlus,
+  Sun,
+  Moon,
+  ShieldCheck,
+  Wrench,
+  UserCircle,
+  Sparkles,
+  RefreshCw,
+} from 'lucide-react'
+import { ProfileFold } from '../../components/ProfileFold'
 
 type ProfileForm = {
   phone: string
@@ -64,6 +79,102 @@ export default function MechanicProfile() {
   const watchedVehicleTypes = watch('vehicleTypes') || []
   const watchedExpertise = watch('expertise') || []
   const watchedBrands = watch('brands') || []
+  const watchedBio = watch('bio') || ''
+  const watchedReply = watch('typicalResponseHours') || ''
+
+  const stats = profile?.stats as
+    | { averageRating: number | null; ratingCount: number; jobsCompleted: number; quoteWinRate: number | null }
+    | undefined
+
+  const [sectionOpen, setSectionOpen] = useState({
+    account: true,
+    workshop: true,
+    visibility: true,
+    documents: true,
+  })
+  const [sectionsSeeded, setSectionsSeeded] = useState(false)
+
+  const profileStrength = useMemo(() => {
+    const hasPhoto = !!avatarUrl
+    const hasCert = !!certificateUrl
+    const hasWorkshop = !!(workshopLocation || (profile?.profile?.latitude != null && profile?.profile?.longitude != null))
+    const hasReply = !!String(watchedReply).trim()
+    const hasBio = watchedBio.trim().length >= 20
+    const items = [
+      { id: 'photo', label: 'Workshop photo', done: hasPhoto },
+      { id: 'cert', label: 'Certificate', done: hasCert },
+      { id: 'loc', label: 'Workshop location', done: hasWorkshop },
+      { id: 'reply', label: 'Reply time', done: hasReply },
+      { id: 'bio', label: 'Bio (20+ chars)', done: hasBio },
+    ]
+    return { items, done: items.filter((i) => i.done).length, total: items.length }
+  }, [avatarUrl, certificateUrl, workshopLocation, profile, watchedReply, watchedBio])
+
+  const toggleSection = (key: keyof typeof sectionOpen) => {
+    setSectionOpen((s) => ({ ...s, [key]: !s[key] }))
+  }
+
+  const openStrengthSection = (id: string) => {
+    if (id === 'photo' || id === 'cert') {
+      setSectionOpen((s) => ({ ...s, documents: true, account: id === 'photo' ? true : s.account }))
+    } else if (id === 'loc') {
+      setSectionOpen((s) => ({ ...s, workshop: true }))
+    } else {
+      setSectionOpen((s) => ({ ...s, visibility: true }))
+    }
+  }
+
+  const reloadProfile = () => {
+    setLoading(true)
+    mechanicsAPI
+      .getProfile()
+      .then((res) => {
+        const data = res.data
+        setProfile(data)
+        const profileData = data?.profile
+        if (profileData) {
+          setValue('phone', profileData.phone || '')
+          setValue('address', profileData.address || '')
+          setValue('city', profileData.city || '')
+          setValue('state', profileData.state || '')
+          setValue('zipCode', profileData.zipCode || '')
+          setValue('bio', profileData.bio || '')
+          setValue(
+            'typicalResponseHours',
+            profileData.typicalResponseHours != null ? String(profileData.typicalResponseHours) : ''
+          )
+          setValue('nextAvailableNote', profileData.nextAvailableNote || '')
+          setValue('experience', profileData.experience || '')
+          setValue('workshopAddress', profileData.workshopAddress || '')
+          setValue('nin', profileData.nin || '')
+          setValue('guarantorName', profileData.guarantorName || '')
+          setValue('guarantorPhone', profileData.guarantorPhone || '')
+          setValue('guarantorAddress', profileData.guarantorAddress || '')
+          setValue('vehicleTypes', Array.isArray(profileData.vehicleTypes) ? profileData.vehicleTypes : [])
+          setValue('expertise', Array.isArray(profileData.expertise) ? profileData.expertise : [])
+          setValue('brands', Array.isArray(profileData.brands) ? profileData.brands : [])
+          setCertificateUrl(profileData.certificateUrl || null)
+          setAvatarUrl(profileData.avatar ?? profileData.avatarUrl ?? null)
+          setAvailability(profileData.availability ?? true)
+          if (profileData.latitude != null && profileData.longitude != null) {
+            const loc = { lat: profileData.latitude, lng: profileData.longitude }
+            setWorkshopLocation(loc)
+            workshopLocationRef.current = loc
+            setWorkshopAddressLoading(true)
+            reverseGeocode(loc.lat, loc.lng)
+              .then(setWorkshopLocationAddress)
+              .catch(() => setWorkshopLocationAddress(null))
+              .finally(() => setWorkshopAddressLoading(false))
+          } else {
+            setWorkshopLocation(null)
+            setWorkshopLocationAddress(null)
+            workshopLocationRef.current = null
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     mechanicsAPI
@@ -115,6 +226,31 @@ export default function MechanicProfile() {
       })
       .catch(() => setLoading(false))
   }, [setValue])
+
+  useEffect(() => {
+    if (!profile || sectionsSeeded) return
+    const pd = profile.profile
+    const hasWorkshop =
+      (pd?.latitude != null && pd?.longitude != null) ||
+      !!(pd?.workshopAddress && String(pd.workshopAddress).trim())
+    const hasServices =
+      Array.isArray(pd?.vehicleTypes) &&
+      pd.vehicleTypes.length > 0 &&
+      Array.isArray(pd?.expertise) &&
+      pd.expertise.length > 0
+    const customersOk =
+      String(pd?.bio || '').trim().length >= 20 &&
+      pd?.typicalResponseHours != null &&
+      String(pd.typicalResponseHours).trim() !== ''
+    const docsOk = !!(pd?.avatar || pd?.avatarUrl) && !!pd?.certificateUrl
+    setSectionOpen({
+      account: true,
+      visibility: !customersOk,
+      workshop: !(hasWorkshop && hasServices),
+      documents: !docsOk,
+    })
+    setSectionsSeeded(true)
+  }, [profile, sectionsSeeded])
 
   const toggleArrayValue = (field: 'vehicleTypes' | 'expertise' | 'brands', value: string) => {
     const current =
@@ -351,35 +487,145 @@ export default function MechanicProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner variant="logo" size="lg" />
+      <div className="max-w-2xl space-y-4 animate-pulse">
+        <div className="h-40 rounded-2xl bg-gradient-to-br from-primary-100/80 to-slate-100" />
+        <div className="h-24 rounded-xl bg-slate-100" />
+        <div className="h-64 rounded-xl bg-slate-50 border border-slate-100" />
       </div>
     )
   }
 
+  const ratingLabel =
+    stats && stats.ratingCount > 0 && stats.averageRating != null ? `${stats.averageRating} \u2605` : '—'
+  const jobsLabel = stats != null ? String(stats.jobsCompleted) : '—'
+  const winLabel = stats?.quoteWinRate != null ? `${stats.quoteWinRate}%` : '—'
+
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Profile</h1>
-
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Availability</h2>
+      <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm mb-6 bg-gradient-to-br from-primary-50 via-white to-slate-50">
+        <div className="px-6 pt-8 pb-6 text-center">
+          <div className="mx-auto mb-4 h-24 w-24 rounded-full ring-4 ring-white shadow-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-10 w-10 text-slate-400" />
+            )}
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">{profile?.companyName || 'Your workshop'}</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            {[profile?.ownerFullName, profile?.email].filter(Boolean).join(' · ') || '—'}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 mt-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-primary-100 px-3 py-1 text-xs font-semibold text-primary-800">
+              <Wrench className="h-3.5 w-3.5" />
+              Mechanic
+            </span>
+            {profile?.isVerified ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-900">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                Verification pending
+              </span>
+            )}
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-2 rounded-xl bg-white/90 border border-slate-100 p-3">
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900">{ratingLabel}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Rating</p>
+            </div>
+            <div className="text-center border-x border-slate-100">
+              <p className="text-lg font-bold text-slate-900">{jobsLabel}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Jobs done</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900">{winLabel}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Quote wins</p>
+            </div>
+          </div>
           <button
-            onClick={toggleAvailability}
-            className={`px-4 py-2 rounded-md ${
-              availability
-                ? 'bg-primary-100 text-primary-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}
+            type="button"
+            onClick={() => reloadProfile()}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800"
           >
-            {availability ? 'Available' : 'Unavailable'}
+            <RefreshCw className="h-4 w-4" />
+            Refresh stats
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="h-5 w-5 text-primary-600" />
+          <h2 className="text-lg font-bold text-slate-900">Profile strength</h2>
+          <span className="ml-auto text-sm font-bold text-primary-700">
+            {profileStrength.done}/{profileStrength.total}
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-3">
+          <div
+            className="h-full rounded-full bg-primary-500 transition-all"
+            style={{ width: `${(profileStrength.done / profileStrength.total) * 100}%` }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {profileStrength.items.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              onClick={() => openStrengthSection(it.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                it.done
+                  ? 'border-primary-200 bg-primary-50 text-primary-900'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-primary-200'
+              }`}
+            >
+              {it.done ? '\u2713' : '\u25cb'} {it.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            {availability ? (
+              <Sun className="h-6 w-6 text-primary-600 shrink-0 mt-0.5" />
+            ) : (
+              <Moon className="h-6 w-6 text-slate-500 shrink-0 mt-0.5" />
+            )}
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Taking new jobs</h2>
+              <p className="text-sm text-slate-600 mt-0.5">
+                {availability
+                  ? 'You appear in search and can receive direct requests.'
+                  : 'You are hidden from search until you mark yourself available again.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAvailability}
+            disabled={availabilityUpdating}
+            className={`shrink-0 px-5 py-2.5 rounded-xl font-semibold text-sm transition-transform active:scale-[0.98] ${
+              availability ? 'bg-primary-100 text-primary-900' : 'bg-slate-100 text-slate-800'
+            } disabled:opacity-60`}
+          >
+            {availabilityUpdating ? 'Updating…' : availability ? 'Available' : 'Unavailable'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 sm:p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <ProfileFold
+            title="Account & contact"
+            icon={UserCircle}
+            open={sectionOpen.account}
+            onToggle={() => toggleSection('account')}
+          >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Company Name
@@ -483,6 +729,14 @@ export default function MechanicProfile() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
+          </ProfileFold>
+
+          <ProfileFold
+            title="Workshop & services"
+            icon={MapPin}
+            open={sectionOpen.workshop}
+            onToggle={() => toggleSection('workshop')}
+          >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Type of vehicle(s) you work on <span className="text-red-500">*</span>
@@ -557,6 +811,14 @@ export default function MechanicProfile() {
               </p>
             )}
           </div>
+          </ProfileFold>
+
+          <ProfileFold
+            title="Documents & compliance"
+            icon={FileText}
+            open={sectionOpen.documents}
+            onToggle={() => toggleSection('documents')}
+          >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Certificate <span className="text-red-500">*</span>
@@ -672,6 +934,15 @@ export default function MechanicProfile() {
               </div>
             </div>
           </div>
+          </ProfileFold>
+
+          <ProfileFold
+            title="Expertise & visibility"
+            icon={Sparkles}
+            badge="Trust"
+            open={sectionOpen.visibility}
+            onToggle={() => toggleSection('visibility')}
+          >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Expertise (AC, Electrical, Mechanical, etc.) <span className="text-red-500">*</span>
@@ -774,6 +1045,8 @@ export default function MechanicProfile() {
               rows={4}
             />
           </div>
+          </ProfileFold>
+
           <button
             type="submit"
             disabled={profileUpdating}
