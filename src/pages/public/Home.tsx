@@ -71,7 +71,7 @@ export default function Home() {
                 <span className="text-primary-600">near you</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
-                Connect with verified mechanics, compare quotes in naira, and get your vehicle fixed without the guesswork — book, chat, and pay in one place.
+                Connect with verified mechanics, compare quotes in naira, and get your vehicle fixed without the guesswork, book, chat, and pay in one place.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link to="/register" className="btn-gradient px-7 py-4 text-base">
@@ -322,7 +322,7 @@ export default function Home() {
             Ready to get started?
           </h2>
           <p className="text-primary-100/95 mb-8 text-lg max-w-xl mx-auto leading-relaxed">
-            Join drivers and mechanics who use one clear flow — from quote to paid job.
+            Join drivers and mechanics who use one clear flow, from quote to paid job.
           </p>
           <Link
             to="/register"
