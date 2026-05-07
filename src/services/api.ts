@@ -135,6 +135,14 @@ export const authAPI = {
 
   verifyEmail: (token: string, role: string) =>
     api.get(`/auth/verify-email?token=${token}&role=${role}`),
+  forgotPassword: (data: { email: string; role: 'USER' | 'MECHANIC' }) =>
+    api.post('/auth/forgot-password', data),
+  resetPassword: (data: {
+    email: string
+    role: 'USER' | 'MECHANIC'
+    code: string
+    newPassword: string
+  }) => api.post('/auth/reset-password', data),
 
   getMe: () => api.get('/auth/me'),
 }
@@ -284,6 +292,23 @@ export const walletAPI = {
     api.post<{ success: boolean; booking: any }>('/wallet/verify-payment', { reference }),
   markDirectPaid: (bookingId: string) =>
     api.post('/wallet/mark-direct-paid', { bookingId }),
+  initializeMechanicFeePayment: (body: {
+    amountMinor: number
+    bookingId?: string
+    note?: string
+  }) =>
+    api.post<{
+      authorizationUrl: string
+      accessCode: string
+      reference: string
+    }>('/wallet/initialize-mechanic-fee-payment', body),
+  verifyMechanicFeePayment: (reference: string) =>
+    api.post<{ success: boolean }>('/wallet/verify-mechanic-fee-payment', { reference }),
+  cancelMechanicFeeCheckout: (reference: string) =>
+    api.post<{ success: boolean; outcome: 'cancelled' | 'finalized' }>(
+      '/wallet/cancel-mechanic-fee-checkout',
+      { reference },
+    ),
   getTransactions: (params?: { type?: string; limit?: number; offset?: number }) =>
     api.get<{ items: any[]; total: number; limit: number; offset: number }>('/wallet/transactions', { params }),
   getBalance: () =>
@@ -292,6 +317,7 @@ export const walletAPI = {
     api.get<{ owingMinor: number; owingNaira: number; currency: string; totalFeeOwedMinor: number; totalFeePaidMinor: number }>('/wallet/owing'),
   getSummary: () =>
     api.get<{ balance: any; owing: any; recentTransactions: any[] }>('/wallet/summary'),
+  getTransaction: (id: string) => api.get(`/wallet/transactions/${id}`),
   /** Mechanic: Withdraw balance to default bank account (sends via Paystack, then records). */
   withdraw: (amountMinor: number) => api.post('/wallet/withdraw', { amountMinor }),
 }

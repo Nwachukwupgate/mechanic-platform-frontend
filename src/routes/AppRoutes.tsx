@@ -14,6 +14,8 @@ import NotFound from '../pages/public/NotFound'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import VerifyEmail from '../pages/auth/VerifyEmail'
+import ForgotPassword from '../pages/auth/ForgotPassword'
+import ResetPassword from '../pages/auth/ResetPassword'
 
 // User pages
 import UserDashboard from '../pages/user/Dashboard'
@@ -32,6 +34,7 @@ import MechanicBookings from '../pages/mechanic/Bookings'
 import MechanicBookingDetail from '../pages/mechanic/BookingDetail'
 import MechanicJobHistory from '../pages/mechanic/JobHistory'
 import MechanicWallet from '../pages/mechanic/Wallet'
+import MechanicTransactionDetail from '../pages/mechanic/TransactionDetail'
 
 // Layouts
 import PublicLayout from '../layouts/PublicLayout'
@@ -87,6 +90,8 @@ export function AppRoutes() {
         />
         <Route path="register" element={<Register />} />
         <Route path="verify-email" element={<VerifyEmail />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* User routes */}
@@ -123,6 +128,7 @@ export function AppRoutes() {
         <Route path="bookings/:id" element={<MechanicBookingDetail />} />
         <Route path="history" element={<MechanicJobHistory />} />
         <Route path="wallet" element={<MechanicWallet />} />
+        <Route path="wallet/transactions/:id" element={<MechanicTransactionDetail />} />
       </Route>
 
       {/* 404 — must be last; uses public layout (nav + footer) */}

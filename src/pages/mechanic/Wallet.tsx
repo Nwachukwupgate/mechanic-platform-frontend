@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { walletAPI, mechanicsAPI } from '../../services/api'
+import { getApiErrorMessage, mechanicsAPI, walletAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Banknote, AlertCircle, Building2, Plus, Star, Trash2, ArrowDownToLine } from 'lucide-react'
+import { AlertCircle, ArrowDownLeft, ArrowDownToLine, ArrowUpRight, Banknote, Building2, Plus, Star, Trash2, Wallet as WalletIcon } from 'lucide-react'
 
 type BankAccount = {
   id: string
@@ -17,6 +18,9 @@ const typeLabels: Record<string, string> = {
   USER_PAYMENT: 'User paid platform',
   PLATFORM_PAYOUT: 'Payout to you',
   MECHANIC_FEE: 'Fee paid to platform',
+  PLATFORM_FEE_AUTO_SETTLEMENT: 'Auto fee settlement',
+  AUTO_PLATFORM_FEE_SETTLEMENT: 'Auto fee settlement',
+  FEE_SETTLEMENT: 'Auto fee settlement',
   REFUND: 'Refund',
 }
 
@@ -27,10 +31,12 @@ const statusBadge: Record<string, string> = {
 }
 
 export default function MechanicWallet() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const feeVerifyStarted = useRef(false)
   const [summary, setSummary] = useState<{
     balance: any
-    owing: any
     recentTransactions: any[]
+    pendingPlatformFeeCheckouts?: any[]
   } | null>(null)
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([])
@@ -40,6 +46,8 @@ export default function MechanicWallet() {
   const [submitting, setSubmitting] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawing, setWithdrawing] = useState(false)
+  const [payingFee, setPayingFee] = useState(false)
+  const [paystackFeeRef, setPaystackFeeRef] = useState('')
 
   const loadData = () => {
     setLoading(true)
@@ -65,8 +73,43 @@ export default function MechanicWallet() {
   }
 
   const balance = summary?.balance ?? {}
-  const owing = summary?.owing ?? {}
+  const pendingFeeCheckouts = summary?.pendingPlatformFeeCheckouts ?? []
+  const pendingCheckoutMinor = Number(balance.pendingPlatformFeeCheckoutMinor ?? 0)
+  const grossWithdrawableMinor = Number(balance.availableToWithdrawMinor ?? balance.balanceMinor ?? 0)
+  const dueMinor = Number(balance.unpaidPlatformFeeMinor ?? 0)
+  const autoSettledMinor = Math.max(0, Number(balance.totalAutoFeeSettledMinor ?? 0))
+  const netMinor = Number(balance.netMinor ?? grossWithdrawableMinor - dueMinor)
+  const canStartFeeCheckout = pendingFeeCheckouts.length === 0
   const recent = summary?.recentTransactions ?? []
+  const availableToWithdrawMinor = useMemo(() => {
+    if (Number.isFinite(grossWithdrawableMinor)) return grossWithdrawableMinor
+    return 0
+  }, [grossWithdrawableMinor])
+
+  useEffect(() => {
+    const reference = searchParams.get('reference') || searchParams.get('trxref')
+    if (!reference) {
+      feeVerifyStarted.current = false
+      return
+    }
+    if (feeVerifyStarted.current) return
+    feeVerifyStarted.current = true
+    walletAPI
+      .verifyMechanicFeePayment(reference.trim())
+      .then(() => {
+        toast.success('Platform fee payment confirmed')
+        setSearchParams({}, { replace: true })
+        loadData()
+      })
+      .catch((e: unknown) => {
+        feeVerifyStarted.current = false
+        const msg = getApiErrorMessage(e, 'Could not verify payment')
+        const benign =
+          msg.toLowerCase().includes('already') || msg.toLowerCase().includes('not found or already processed')
+        if (!benign) toast.error(msg)
+        setSearchParams({}, { replace: true })
+      })
+  }, [searchParams, setSearchParams])
 
   return (
     <div>
@@ -75,7 +118,7 @@ export default function MechanicWallet() {
         Wallet
       </h1>
       <p className="text-slate-600 mb-8">
-        Your balance, what you owe the platform, and transaction history.
+        Net balance, withdrawals, platform fee due, and transaction history.
       </p>
 
       <div className="grid gap-6 md:grid-cols-2 mb-8">
@@ -85,12 +128,12 @@ export default function MechanicWallet() {
               <Banknote className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="font-semibold text-slate-800">Platform owes you</h2>
-              <p className="text-sm text-slate-500">80% of platform-paid jobs, minus payouts</p>
+              <h2 className="font-semibold text-slate-800">Available to withdraw now</h2>
+              <p className="text-sm text-slate-500">From platform-paid jobs after fee settlement</p>
             </div>
           </div>
           <p className="text-2xl font-bold text-emerald-700">
-            ₦{(balance.balanceNaira ?? 0).toLocaleString()}
+            ₦{(availableToWithdrawMinor / 100).toLocaleString()}
           </p>
           <p className="text-xs text-slate-500 mt-1">
             Total earned from platform: ₦{((balance.totalEarnedFromPlatformMinor ?? 0) / 100).toLocaleString()} · Payouts: ₦{((balance.totalPayoutsMinor ?? 0) / 100).toLocaleString()}
@@ -103,17 +146,28 @@ export default function MechanicWallet() {
               <AlertCircle className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="font-semibold text-slate-800">You owe platform</h2>
-              <p className="text-sm text-slate-500">20% fee on jobs paid directly to you</p>
+              <h2 className="font-semibold text-slate-800">Platform fee amount due</h2>
+              <p className="text-sm text-slate-500">Remaining 20% fee from direct-paid jobs</p>
             </div>
           </div>
           <p className="text-2xl font-bold text-amber-700">
-            ₦{(owing.owingNaira ?? 0).toLocaleString()}
+            ₦{(dueMinor / 100).toLocaleString()}
           </p>
           <p className="text-xs text-slate-500 mt-1">
-            Total fee owed: ₦{((owing.totalFeeOwedMinor ?? 0) / 100).toLocaleString()} · Paid: ₦{((owing.totalFeePaidMinor ?? 0) / 100).toLocaleString()}
+            Total fee owed: ₦{((balance.totalFeeOwedMinor ?? 0) / 100).toLocaleString()} · Paid: ₦{((balance.totalFeePaidMinor ?? 0) / 100).toLocaleString()}
           </p>
+          {autoSettledMinor > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              Auto-settled from platform earnings: ₦{(autoSettledMinor / 100).toLocaleString()}
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <p className="text-sm text-slate-600">
+          Net wallet position: <span className="font-semibold text-slate-900">₦{(netMinor / 100).toLocaleString()}</span>
+        </p>
       </div>
 
       {/* Withdraw to bank */}
@@ -124,7 +178,7 @@ export default function MechanicWallet() {
           </div>
           <div>
             <h2 className="font-semibold text-slate-800">Withdraw to bank</h2>
-            <p className="text-sm text-slate-500">Send your balance to your default bank account. Money is sent via Paystack and recorded instantly.</p>
+            <p className="text-sm text-slate-500">Send your withdrawable balance to your default bank account.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -142,7 +196,7 @@ export default function MechanicWallet() {
           </div>
           <button
             type="button"
-            disabled={withdrawing || !withdrawAmount || (balance.balanceMinor ?? 0) < 100}
+            disabled={withdrawing || !withdrawAmount || availableToWithdrawMinor < 100}
             onClick={async () => {
               const naira = parseFloat(withdrawAmount)
               if (!Number.isFinite(naira) || naira < 1) {
@@ -150,8 +204,8 @@ export default function MechanicWallet() {
                 return
               }
               const amountMinor = Math.round(naira * 100)
-              if (amountMinor > (balance.balanceMinor ?? 0)) {
-                toast.error('Amount exceeds your balance')
+              if (amountMinor > availableToWithdrawMinor) {
+                toast.error('Amount exceeds withdrawable balance')
                 return
               }
               setWithdrawing(true)
@@ -181,10 +235,90 @@ export default function MechanicWallet() {
             )}
           </button>
         </div>
-        {(balance.balanceMinor ?? 0) < 100 && (
+        {availableToWithdrawMinor < 100 && (
           <p className="mt-2 text-sm text-slate-500">Add a default bank account below and ensure you have at least ₦1 balance.</p>
         )}
       </div>
+
+      {dueMinor >= 100 && (
+        <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6 mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-700">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Pay platform fee</h2>
+              <p className="text-sm text-slate-500">Pay remaining direct-job fee with Paystack card checkout.</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-700 mb-3">
+            Amount due: <span className="font-semibold">₦{(dueMinor / 100).toLocaleString()}</span>
+          </p>
+          {pendingCheckoutMinor > 0 && (
+            <p className="text-xs text-slate-500 mb-3">
+              ₦{(pendingCheckoutMinor / 100).toLocaleString()} is in a pending checkout.
+            </p>
+          )}
+          {pendingFeeCheckouts.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {pendingFeeCheckouts.map((p: any) => (
+                <div key={p.id} className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm flex flex-wrap gap-2 items-center justify-between">
+                  <span>Pending checkout: ₦{(p.amountNaira ?? p.amountMinor / 100).toLocaleString()}</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaystackFeeRef(p.paystackReference || '')
+                        window.location.href = p.authorizationUrl
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 text-xs"
+                    >
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await walletAPI.cancelMechanicFeeCheckout(p.paystackReference || p.internalReference || '')
+                          toast.success('Pending checkout cancelled')
+                          loadData()
+                        } catch (e: unknown) {
+                          toast.error(getApiErrorMessage(e, 'Could not cancel checkout'))
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={payingFee || !canStartFeeCheckout}
+            onClick={async () => {
+              setPayingFee(true)
+              try {
+                const r = await walletAPI.initializeMechanicFeePayment({ amountMinor: dueMinor })
+                setPaystackFeeRef(r.data.reference)
+                window.location.href = r.data.authorizationUrl
+              } catch (e: unknown) {
+                toast.error(getApiErrorMessage(e, 'Could not start fee payment'))
+              } finally {
+                setPayingFee(false)
+              }
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            {payingFee ? 'Starting…' : `Pay ₦${(dueMinor / 100).toLocaleString()} with card`}
+          </button>
+          {paystackFeeRef && (
+            <p className="text-xs text-slate-500 mt-2">Checkout reference: {paystackFeeRef}</p>
+          )}
+        </div>
+      )}
 
       {/* Withdrawal bank accounts */}
       <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6 mb-8">
@@ -349,7 +483,9 @@ export default function MechanicWallet() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-800">{typeLabels[t.type] || t.type}</p>
+                  <Link to={`/mechanic/wallet/transactions/${encodeURIComponent(t.id)}`} className="font-medium text-slate-800 hover:text-primary-700 hover:underline">
+                    {typeLabels[t.type] || t.type}
+                  </Link>
                   <p className="text-sm text-slate-500 truncate">{t.description || t.bookingId || '—'}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {new Date(t.createdAt).toLocaleString()}
@@ -358,7 +494,7 @@ export default function MechanicWallet() {
               </div>
               <div className="text-right">
                 <p className={`font-semibold ${t.type === 'PLATFORM_PAYOUT' ? 'text-emerald-600' : 'text-slate-800'}`}>
-                  {t.type === 'PLATFORM_PAYOUT' ? '+' : ''}₦{(t.amountNaira ?? t.amountMinor / 100).toLocaleString()}
+                  {t.type === 'PLATFORM_PAYOUT' ? '+' : '-'}₦{(t.amountNaira ?? t.amountMinor / 100).toLocaleString()}
                 </p>
                 <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${statusBadge[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
                   {t.status}
