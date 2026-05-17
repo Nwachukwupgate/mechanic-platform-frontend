@@ -8,6 +8,7 @@ import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { userBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
+import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -475,11 +476,15 @@ export default function BookingDetail() {
             View payment summary / receipt
           </Link>
         )}
-        {booking.estimatedCost != null && (
+        {booking.pricingSummary ? (
+          <div className="mt-3">
+            <PricingBreakdownSummary summary={booking.pricingSummary} />
+          </div>
+        ) : booking.estimatedCost != null ? (
           <p className="mt-3 text-slate-700 font-medium">
             Estimated cost: ₦{Number(booking.estimatedCost).toLocaleString()}
           </p>
-        )}
+        ) : null}
         {/* Payment: show when accepted and not yet paid */}
         {paymentsEnabled &&
           ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
@@ -768,8 +773,15 @@ export default function BookingDetail() {
                         {q.mechanic?.companyName} · {q.mechanic?.ownerFullName}
                       </p>
                     <p className="text-sm font-semibold text-primary-600">
-                        ₦{Number(q.proposedPrice).toLocaleString()}
+                        ₦{Number(q.customerTotalNaira ?? q.proposedPrice).toLocaleString()} total
                       </p>
+                      {(q.partsNaira > 0 || q.labourNaira > 0) && (
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {q.partsNaira > 0 && `Parts ₦${Number(q.partsNaira).toLocaleString()}`}
+                          {q.partsNaira > 0 && q.labourNaira > 0 && ' · '}
+                          {q.labourNaira > 0 && `Labour ₦${Number(q.labourNaira).toLocaleString()}`}
+                        </p>
+                      )}
                       {q.message && (
                         <p className="text-sm text-slate-600 mt-1">{q.message}</p>
                       )}

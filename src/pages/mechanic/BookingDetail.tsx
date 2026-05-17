@@ -9,6 +9,12 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { mechanicBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
 import { ArrowLeft, Banknote, MapPin, User, MessageCircle, HelpCircle, ImageIcon } from 'lucide-react'
+import {
+  PricingBreakdownFields,
+  pricingTotal,
+  type PricingBreakdownValues,
+} from '../../components/PricingBreakdownFields'
+import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 
 const MAX_QUOTE_PRICE_REVISIONS = 3
 
@@ -29,8 +35,18 @@ export default function MechanicBookingDetail() {
   const [messages, setMessages] = useState<any[]>([])
   const [status, setStatus] = useState('')
   const [statusUpdating, setStatusUpdating] = useState(false)
-  const [quotePrice, setQuotePrice] = useState('')
+  const [quoteBreakdown, setQuoteBreakdown] = useState<PricingBreakdownValues>({
+    partsCost: '',
+    labourCost: '',
+    otherFees: '',
+  })
+  const [invoiceBreakdown, setInvoiceBreakdown] = useState<PricingBreakdownValues>({
+    partsCost: '',
+    labourCost: '',
+    otherFees: '',
+  })
   const [quoteMessage, setQuoteMessage] = useState('')
+  const [invoiceSubmitting, setInvoiceSubmitting] = useState(false)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [clarificationQuestion, setClarificationQuestion] = useState('')
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false)
@@ -77,8 +93,21 @@ export default function MechanicBookingDetail() {
       setStatus(res.data.status)
       const q = res.data.quotes?.find((x: any) => x.mechanicId === currentUser?.id || x.mechanic?.id === currentUser?.id)
       if (q) {
-        setQuotePrice(String(q.proposedPrice))
+        setQuoteBreakdown({
+          partsCost: q.partsNaira != null ? String(q.partsNaira) : '0',
+          labourCost:
+            q.labourNaira != null ? String(q.labourNaira) : String(q.proposedPrice ?? ''),
+          otherFees: q.otherFeesNaira != null ? String(q.otherFeesNaira) : '0',
+        })
         setQuoteMessage(q.message || '')
+      }
+      const inv = res.data.activeInvoice
+      if (inv) {
+        setInvoiceBreakdown({
+          partsCost: String(inv.partsNaira ?? 0),
+          labourCost: String(inv.labourNaira ?? 0),
+          otherFees: String(inv.otherFeesNaira ?? 0),
+        })
       }
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to load booking'))
@@ -105,25 +134,29 @@ export default function MechanicBookingDetail() {
     (!booking?.mechanicId || booking?.mechanicId === currentUser?.id)
 
   const submitOrUpdateQuote = async () => {
-    if (!id || !quotePrice.trim()) {
-      toast.error('Enter your price')
+    if (!id) return
+    const total = pricingTotal(quoteBreakdown)
+    if (total <= 0) {
+      toast.error('Enter parts, labour, or other fees')
       return
     }
-    const price = parseFloat(quotePrice)
-    if (Number.isNaN(price) || price <= 0) {
-      toast.error('Enter a valid price')
-      return
+    const payload = {
+      partsCost: parseFloat(quoteBreakdown.partsCost) || 0,
+      labourCost: parseFloat(quoteBreakdown.labourCost) || 0,
+      otherFees: parseFloat(quoteBreakdown.otherFees) || 0,
     }
     setQuoteSubmitting(true)
     try {
       if (myQuote?.id) {
-        await bookingsAPI.updateQuote(id, myQuote.id, { proposedPrice: price })
+        await bookingsAPI.updateQuote(id, myQuote.id, payload)
         toast.success('Quote updated')
       } else {
-        await bookingsAPI.createQuote(id, { proposedPrice: price, message: quoteMessage.trim() || undefined })
+        await bookingsAPI.createQuote(id, {
+          ...payload,
+          message: quoteMessage.trim() || undefined,
+        })
         toast.success('Quote submitted')
       }
-      setQuotePrice('')
       setQuoteMessage('')
       loadBooking()
     } catch (error) {
@@ -159,6 +192,34 @@ export default function MechanicBookingDetail() {
       setClarificationSubmitting(false)
     }
   }
+
+  const saveInvoice = async () => {
+    if (!id) return
+    const total = pricingTotal(invoiceBreakdown)
+    if (total <= 0) {
+      toast.error('Enter a valid cost breakdown')
+      return
+    }
+    setInvoiceSubmitting(true)
+    try {
+      await bookingsAPI.upsertInvoice(id, {
+        partsCost: parseFloat(invoiceBreakdown.partsCost) || 0,
+        labourCost: parseFloat(invoiceBreakdown.labourCost) || 0,
+        otherFees: parseFloat(invoiceBreakdown.otherFees) || 0,
+      })
+      toast.success('Job costing saved')
+      loadBooking()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to save costing'))
+    } finally {
+      setInvoiceSubmitting(false)
+    }
+  }
+
+  const canSetInvoice =
+    booking?.mechanicId === currentUser?.id &&
+    ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking?.status) &&
+    !booking?.paidAt
 
   const guidanceLine = useMemo(
     () => (booking ? mechanicBookingGuidance(booking.status) : ''),
@@ -346,19 +407,8 @@ export default function MechanicBookingDetail() {
             <h3 className="font-medium text-slate-800 mb-2">
               {myQuote ? 'Update your quote' : 'Submit your price for this job'}
             </h3>
-            <div className="flex flex-wrap gap-3 items-end">
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Price (₦)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={quotePrice}
-                  onChange={(e) => setQuotePrice(e.target.value)}
-                  placeholder="e.g. 50"
-                  className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                />
-              </div>
+            <PricingBreakdownFields values={quoteBreakdown} onChange={setQuoteBreakdown} />
+            <div className="flex flex-wrap gap-3 items-end mt-3">
               <div className="flex-1 min-w-[180px]">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Message (optional)</label>
                 <input
@@ -454,16 +504,26 @@ export default function MechanicBookingDetail() {
           </div>
         )}
 
-        {/* Cost comes from the accepted quote only — no separate "set cost" in the bargain */}
-        {booking.estimatedCost != null && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-slate-400" />
-            <span className="font-semibold text-slate-800">
-              ₦{Number(booking.estimatedCost).toLocaleString()}
-            </span>
-            {booking.mechanicId && (
-              <span className="text-xs text-slate-500">(from accepted quote)</span>
-            )}
+        {booking.pricingSummary && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <PricingBreakdownSummary summary={booking.pricingSummary} />
+          </div>
+        )}
+        {canSetInvoice && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <h3 className="font-medium text-slate-800 mb-2">Job costing</h3>
+            <p className="text-sm text-slate-500 mb-3">
+              Break down parts, labour, and other fees. Customer pays the total; platform fee applies to labour only.
+            </p>
+            <PricingBreakdownFields values={invoiceBreakdown} onChange={setInvoiceBreakdown} />
+            <button
+              type="button"
+              onClick={saveInvoice}
+              disabled={invoiceSubmitting}
+              className="mt-3 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-60"
+            >
+              {invoiceSubmitting ? 'Saving…' : 'Save costing'}
+            </button>
           </div>
         )}
       </div>

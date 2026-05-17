@@ -238,14 +238,31 @@ export const bookingsAPI = {
     api.put(`/bookings/${id}/status`, { status }),
   updateCost: (id: string, cost: number) =>
     api.put(`/bookings/${id}/cost`, { cost }),
+  upsertInvoice: (
+    id: string,
+    data: { partsCost: number; labourCost: number; otherFees?: number; notes?: string },
+  ) => api.put(`/bookings/${id}/invoice`, data),
+  submitInvoice: (id: string) => api.put(`/bookings/${id}/invoice/submit`),
+  acceptInvoice: (id: string) => api.put(`/bookings/${id}/invoice/accept`),
   // Quote flow
   getOpenRequests: (radius?: number) =>
     api.get('/bookings/open-requests', { params: radius != null ? { radius } : {} }),
   getQuotes: (bookingId: string) => api.get(`/bookings/${bookingId}/quotes`),
-  createQuote: (bookingId: string, data: { proposedPrice: number; message?: string }) =>
-    api.post(`/bookings/${bookingId}/quotes`, data),
-  updateQuote: (bookingId: string, quoteId: string, data: { proposedPrice: number }) =>
-    api.put(`/bookings/${bookingId}/quotes/${quoteId}`, data),
+  createQuote: (
+    bookingId: string,
+    data: {
+      proposedPrice?: number
+      partsCost?: number
+      labourCost?: number
+      otherFees?: number
+      message?: string
+    },
+  ) => api.post(`/bookings/${bookingId}/quotes`, data),
+  updateQuote: (
+    bookingId: string,
+    quoteId: string,
+    data: { proposedPrice?: number; partsCost?: number; labourCost?: number; otherFees?: number },
+  ) => api.put(`/bookings/${bookingId}/quotes/${quoteId}`, data),
   withdrawQuote: (bookingId: string, quoteId: string) =>
     api.put(`/bookings/${bookingId}/quotes/${quoteId}/withdraw`),
   rejectQuote: (bookingId: string, quoteId: string) =>
