@@ -15,6 +15,8 @@ import {
   type PricingBreakdownValues,
 } from '../../components/PricingBreakdownFields'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
+import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidation'
+import { canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
 
 const MAX_QUOTE_PRICE_REVISIONS = 3
 
@@ -45,6 +47,7 @@ export default function MechanicBookingDetail() {
     labourCost: '',
     otherFees: '',
   })
+  const [quoteType, setQuoteType] = useState<'STANDARD' | 'INSPECTION'>('STANDARD')
   const [quoteMessage, setQuoteMessage] = useState('')
   const [invoiceSubmitting, setInvoiceSubmitting] = useState(false)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
@@ -93,6 +96,7 @@ export default function MechanicBookingDetail() {
       setStatus(res.data.status)
       const q = res.data.quotes?.find((x: any) => x.mechanicId === currentUser?.id || x.mechanic?.id === currentUser?.id)
       if (q) {
+        setQuoteType(q.quoteType === 'INSPECTION' ? 'INSPECTION' : 'STANDARD')
         setQuoteBreakdown({
           partsCost: q.partsNaira != null ? String(q.partsNaira) : '0',
           labourCost:
@@ -135,16 +139,27 @@ export default function MechanicBookingDetail() {
 
   const submitOrUpdateQuote = async () => {
     if (!id) return
-    const total = pricingTotal(quoteBreakdown)
+    const isInspection = quoteType === 'INSPECTION'
+    const total = isInspection
+      ? parseFloat(quoteBreakdown.labourCost) || 0
+      : pricingTotal(quoteBreakdown)
     if (total <= 0) {
-      toast.error('Enter parts, labour, or other fees')
+      toast.error(isInspection ? 'Enter an inspection / diagnosis fee' : 'Enter parts, labour, or other fees')
       return
     }
-    const payload = {
-      partsCost: parseFloat(quoteBreakdown.partsCost) || 0,
-      labourCost: parseFloat(quoteBreakdown.labourCost) || 0,
-      otherFees: parseFloat(quoteBreakdown.otherFees) || 0,
-    }
+    const payload = isInspection
+      ? {
+          quoteType: 'INSPECTION' as const,
+          partsCost: 0,
+          labourCost: total,
+          otherFees: 0,
+        }
+      : {
+          quoteType: 'STANDARD' as const,
+          partsCost: parseFloat(quoteBreakdown.partsCost) || 0,
+          labourCost: parseFloat(quoteBreakdown.labourCost) || 0,
+          otherFees: parseFloat(quoteBreakdown.otherFees) || 0,
+        }
     setQuoteSubmitting(true)
     try {
       if (myQuote?.id) {
@@ -155,7 +170,7 @@ export default function MechanicBookingDetail() {
           ...payload,
           message: quoteMessage.trim() || undefined,
         })
-        toast.success('Quote submitted')
+        toast.success(isInspection ? 'Inspection quote submitted' : 'Quote submitted')
       }
       setQuoteMessage('')
       loadBooking()
@@ -249,6 +264,8 @@ export default function MechanicBookingDetail() {
       ? [booking.user.firstName, booking.user.lastName].filter(Boolean).join(' ')
       : 'Customer'
   const hasLocation = booking.locationLat != null && booking.locationLng != null
+  const showCustomerPhone = canShowBookingContactPhone(booking)
+  const customerPhoneNumber = showCustomerPhone ? customerPhone(booking.user) : undefined
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -270,9 +287,19 @@ export default function MechanicBookingDetail() {
                 {booking.vehicle?.brand} {booking.vehicle?.model}
               </h1>
               <p className="text-slate-600 mt-0.5">{booking.fault?.name}</p>
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
               <User className="h-4 w-4 text-slate-400" />
               <span className="text-sm font-medium text-slate-700">{customerName}</span>
+              {customerPhoneNumber ? (
+                <a
+                  href={`tel:${customerPhoneNumber.replace(/\s/g, '')}`}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Call customer
+                </a>
+              ) : booking.status === 'REQUESTED' ? (
+                <span className="text-xs text-slate-500">Phone available after quote is accepted</span>
+              ) : null}
             </div>
             {booking.description && (
               <p className="text-sm text-slate-600 mt-2">{booking.description}</p>
@@ -395,7 +422,7 @@ export default function MechanicBookingDetail() {
                 </button>
               </div>
               <p className="mt-1.5 text-xs text-slate-500">
-                Up to 2 questions per job (max 5 total). The customer answers from their booking page.
+                Up to 3 questions per job (10 total on open jobs). The customer answers from their booking page.
               </p>
             </>
           )}
@@ -407,7 +434,49 @@ export default function MechanicBookingDetail() {
             <h3 className="font-medium text-slate-800 mb-2">
               {myQuote ? 'Update your quote' : 'Submit your price for this job'}
             </h3>
-            <PricingBreakdownFields values={quoteBreakdown} onChange={setQuoteBreakdown} />
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setQuoteType('STANDARD')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border ${
+                  quoteType === 'STANDARD'
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+              >
+                Full repair quote
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuoteType('INSPECTION')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border ${
+                  quoteType === 'INSPECTION'
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+              >
+                Inspection visit
+              </button>
+            </div>
+            {quoteType === 'INSPECTION' ? (
+              <>
+                <p className="text-sm text-slate-600 mb-3">
+                  Charge a diagnosis fee to visit and inspect. Submit the full repair quote after the on-site check.
+                </p>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Inspection / diagnosis fee (₦)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={quoteBreakdown.labourCost}
+                  onChange={(e) => setQuoteBreakdown((v) => ({ ...v, labourCost: e.target.value, partsCost: '0', otherFees: '0' }))}
+                  className="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3"
+                />
+              </>
+            ) : (
+              <PricingBreakdownFields values={quoteBreakdown} onChange={setQuoteBreakdown} />
+            )}
             <div className="flex flex-wrap gap-3 items-end mt-3">
               <div className="flex-1 min-w-[180px]">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Message (optional)</label>

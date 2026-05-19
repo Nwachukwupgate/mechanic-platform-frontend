@@ -8,6 +8,8 @@ import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { userBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
+import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidation'
+import { canShowBookingContactPhone, mechanicPhone } from '../../lib/bookingContact'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import {
   ArrowLeft,
@@ -244,6 +246,8 @@ export default function BookingDetail() {
   }, [booking])
 
   const photoUrls: string[] = Array.isArray(booking?.photoUrls) ? booking.photoUrls : []
+  const showMechanicPhone = booking ? canShowBookingContactPhone(booking) : false
+  const mechanicPhoneNumber = showMechanicPhone ? mechanicPhone(booking?.mechanic) : undefined
 
   const handlePhotoFiles = async (files: FileList | null) => {
     if (!id || !files?.length) return
@@ -398,7 +402,7 @@ export default function BookingDetail() {
               </h1>
               <p className="text-slate-600 mt-0.5">{booking.fault?.name}</p>
             {booking.mechanic && (
-              <div className="flex items-center gap-3 mt-3">
+              <div className="flex flex-wrap items-center gap-3 mt-3">
                 {booking.mechanic.profile?.avatar ? (
                   <img src={booking.mechanic.profile.avatar} alt="" className="h-10 w-10 rounded-full object-cover border border-slate-200" />
                 ) : (
@@ -409,6 +413,14 @@ export default function BookingDetail() {
                 <span className="text-sm font-medium text-slate-700">
                   {booking.mechanic.companyName} · {booking.mechanic.ownerFullName}
                 </span>
+                {mechanicPhoneNumber ? (
+                  <a
+                    href={`tel:${mechanicPhoneNumber.replace(/\s/g, '')}`}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Call mechanic
+                  </a>
+                ) : null}
               </div>
             )}
             </div>
@@ -772,10 +784,21 @@ export default function BookingDetail() {
                       <p className="font-medium text-slate-800">
                         {q.mechanic?.companyName} · {q.mechanic?.ownerFullName}
                       </p>
+                      {isQuoteInspection(q) ? (
+                        <span className="inline-block mt-1 text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md">
+                          {quoteTypeLabel(q)}
+                        </span>
+                      ) : null}
                     <p className="text-sm font-semibold text-primary-600">
-                        ₦{Number(q.customerTotalNaira ?? q.proposedPrice).toLocaleString()} total
+                        ₦{Number(q.customerTotalNaira ?? q.proposedPrice).toLocaleString()}
+                        {isQuoteInspection(q) ? ' inspection fee' : ' total'}
                       </p>
-                      {(q.partsNaira > 0 || q.labourNaira > 0) && (
+                      {isQuoteInspection(q) ? (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Full repair quote after the mechanic checks your vehicle on site.
+                        </p>
+                      ) : null}
+                      {(q.partsNaira > 0 || q.labourNaira > 0) && !isQuoteInspection(q) && (
                         <p className="text-xs text-slate-500 mt-0.5">
                           {q.partsNaira > 0 && `Parts ₦${Number(q.partsNaira).toLocaleString()}`}
                           {q.partsNaira > 0 && q.labourNaira > 0 && ' · '}

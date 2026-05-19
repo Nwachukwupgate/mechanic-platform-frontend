@@ -4,6 +4,11 @@ import toast from 'react-hot-toast'
 import { vehiclesAPI, faultsAPI, bookingsAPI, getApiErrorMessage } from '../../services/api'
 import { reverseGeocode, searchAddress, type GeocodeSearchResult } from '../../services/geocoding'
 import { MechanicsMap } from '../../components/MechanicsMap'
+import {
+  validateJobPostingInput,
+  MIN_OPEN_JOB_DESCRIPTION_LENGTH,
+  RECOMMENDED_JOB_PHOTOS,
+} from '../../lib/jobPostingValidation'
 import { MapPin, Star, CheckCircle2, User, List, Map, ImagePlus, X, Search, Navigation } from 'lucide-react'
 
 const LOCATION_STORAGE_KEY = 'findMechanics:lastLocation'
@@ -299,6 +304,23 @@ export default function FindMechanics() {
       return
     }
 
+    const isOpenBoard = !mechanicId
+    const fault = faults.find((f) => f.id === selectedFault)
+    const validationMessage = validateJobPostingInput({
+      description: diagnosticNotes,
+      photoCount: jobPhotos.length,
+      faultName: fault?.name,
+      isOpenBoard,
+    })
+    if (validationMessage) {
+      if (validationMessage.startsWith('We recommend')) {
+        if (!window.confirm(`${validationMessage}\n\nContinue anyway?`)) return
+      } else {
+        toast.error(validationMessage)
+        return
+      }
+    }
+
     setRequestingMechanicId(mechanicId ?? 'new')
     try {
       const res = await bookingsAPI.create({
@@ -445,13 +467,17 @@ export default function FindMechanics() {
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Additional details (optional)
+            Describe the issue {` (min ${MIN_OPEN_JOB_DESCRIPTION_LENGTH} characters for open jobs)`}
           </label>
+          <p className="text-xs text-slate-500 mb-2">
+            Include when it started, symptoms, warning lights, and sounds. Mechanics quote from your notes and photos —
+            they cannot call you on open jobs.
+          </p>
           <textarea
             value={diagnosticNotes}
             onChange={(e) => setDiagnosticNotes(e.target.value)}
-            placeholder="e.g. When it started, any sounds, warning lights, or what you’ve already tried. Helps mechanics give a better price."
-            rows={3}
+            placeholder="e.g. Grinding noise when braking from 60km/h, started last week, no warning lights..."
+            rows={4}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
         </div>
@@ -527,7 +553,7 @@ export default function FindMechanics() {
                   {jobPhotos.length >= 3 ? 'Maximum 3 photos' : 'Drop photos here or tap to browse'}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {jobPhotos.length}/3 selected — helps mechanics quote accurately
+                  {jobPhotos.length}/3 selected — add at least {RECOMMENDED_JOB_PHOTOS} when you can
                 </p>
               </div>
             </div>
