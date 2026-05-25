@@ -6,10 +6,10 @@ import { reverseGeocode, searchAddress, type GeocodeSearchResult } from '../../s
 import { MechanicsMap } from '../../components/MechanicsMap'
 import {
   validateJobPostingInput,
-  MIN_OPEN_JOB_DESCRIPTION_LENGTH,
   RECOMMENDED_JOB_PHOTOS,
 } from '../../lib/jobPostingValidation'
-import { MapPin, Star, CheckCircle2, User, List, Map, ImagePlus, X, Search, Navigation } from 'lucide-react'
+import { mechanicPhone } from '../../lib/bookingContact'
+import { MapPin, Star, CheckCircle2, User, List, Map, ImagePlus, X, Search, Navigation, Phone } from 'lucide-react'
 
 const LOCATION_STORAGE_KEY = 'findMechanics:lastLocation'
 const LOCATION_MAX_AGE_MS = 24 * 60 * 60 * 1000
@@ -467,11 +467,11 @@ export default function FindMechanics() {
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Describe the issue {` (min ${MIN_OPEN_JOB_DESCRIPTION_LENGTH} characters for open jobs)`}
+            Describe the issue (optional)
           </label>
           <p className="text-xs text-slate-500 mb-2">
             Include when it started, symptoms, warning lights, and sounds. Mechanics quote from your notes and photos —
-            they cannot call you on open jobs.
+            you can also call each other while comparing quotes.
           </p>
           <textarea
             value={diagnosticNotes}
@@ -666,7 +666,9 @@ export default function FindMechanics() {
             No mechanics found. Try adjusting your search criteria.
           </div>
         ) : (
-        mechanics.map((mechanic) => (
+        mechanics.map((mechanic) => {
+          const garagePhone = mechanicPhone(mechanic)
+          return (
           <div key={mechanic.mechanic.id} className="card p-6">
             <div className="flex items-start gap-3 mb-3">
               <div className="flex-shrink-0">
@@ -729,6 +731,15 @@ export default function FindMechanics() {
                     : 'Address not set')}
               </span>
             </div>
+            {garagePhone ? (
+              <a
+                href={`tel:${garagePhone.replace(/\s/g, '')}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 mb-4"
+              >
+                <Phone className="h-4 w-4" />
+                {garagePhone}
+              </a>
+            ) : null}
             <div className="mb-4">
               <p className="text-sm font-medium mb-1">Expertise:</p>
               <div className="flex flex-wrap gap-1">
@@ -758,7 +769,9 @@ export default function FindMechanics() {
               )}
             </button>
           </div>
-        )))}
+          )
+        })
+        )}
       </div>
       )}
     </div>

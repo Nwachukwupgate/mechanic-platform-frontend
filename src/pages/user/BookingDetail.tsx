@@ -55,6 +55,7 @@ export default function BookingDetail() {
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
   const [answerSaving, setAnswerSaving] = useState<string | null>(null)
   const [paymentLoading, setPaymentLoading] = useState<'paystack' | 'direct' | null>(null)
+  const [acceptingInvoice, setAcceptingInvoice] = useState(false)
   const [publicFlags, setPublicFlags] = useState<Record<string, boolean | number | string> | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -334,6 +335,20 @@ export default function BookingDetail() {
     }
   }
 
+  const acceptInvoice = async () => {
+    if (!id) return
+    setAcceptingInvoice(true)
+    try {
+      await bookingsAPI.acceptInvoice(id)
+      toast.success('Repair quote accepted')
+      loadBooking()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to accept repair quote'))
+    } finally {
+      setAcceptingInvoice(false)
+    }
+  }
+
   const payWithPaystack = async () => {
     if (!booking) return
     setPaymentLoading('paystack')
@@ -380,6 +395,30 @@ export default function BookingDetail() {
 
   const otherPartyName = booking.mechanic?.companyName ?? 'Mechanic'
   const hasLocation = booking.locationLat != null && booking.locationLng != null
+  const showAcceptRepairInvoice = booking.paymentSummary?.phase === 'review_repair_invoice'
+  const paymentPhase = booking.paymentSummary?.phase
+  const showActivePayment =
+    paymentsEnabled &&
+    booking.paymentSummary &&
+    (booking.paymentSummary.canPayInspection ||
+      booking.paymentSummary.canPayRepairBalance ||
+      booking.paymentSummary.canPayStandard) &&
+    ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status)
+  const showBlockedPayment =
+    paymentsEnabled &&
+    booking.paymentSummary?.isInspectionFlow &&
+    ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
+    (paymentPhase === 'awaiting_repair_invoice' || paymentPhase === 'review_repair_invoice')
+  const blockedPaymentHint =
+    paymentPhase === 'awaiting_repair_invoice'
+      ? 'Available after your mechanic submits the full repair quote.'
+      : paymentPhase === 'review_repair_invoice' && booking.paymentSummary
+        ? `Accept the repair quote above first — then pay ₦${Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}.`
+        : null
+  const blockedPayLabel =
+    paymentPhase === 'review_repair_invoice' && booking.paymentSummary
+      ? `Pay repair balance: ₦${Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}`
+      : 'Pay repair balance'
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -497,14 +536,100 @@ export default function BookingDetail() {
             Estimated cost: ₦{Number(booking.estimatedCost).toLocaleString()}
           </p>
         ) : null}
-        {/* Payment: show when accepted and not yet paid */}
-        {paymentsEnabled &&
-          ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
-          !booking.paidAt &&
-          booking.estimatedCost != null &&
-          booking.estimatedCost > 0 && (
+        {booking.paymentSummary?.isInspectionFlow && booking.status !== 'REQUESTED' ? (
+          <div className="mt-4 p-4 rounded-xl bg-violet-50 border border-violet-200">
+            <p className="text-sm font-semibold text-violet-900 mb-2">Payment progress</p>
+            {booking.paymentSummary.inspectionPaidNaira > 0 ? (
+              <p className="text-sm text-violet-800">
+                Inspection paid: ₦{Number(booking.paymentSummary.inspectionPaidNaira).toLocaleString()}
+              </p>
+            ) : (
+              <p className="text-sm text-violet-800">
+                Inspection fee due: ₦{Number(booking.paymentSummary.inspectionFeeNaira).toLocaleString()}
+              </p>
+            )}
+            {booking.paymentSummary.repairTotalNaira != null ? (
+              <>
+                <p className="text-sm text-violet-800 mt-1">
+                  Full repair total: ₦{Number(booking.paymentSummary.repairTotalNaira).toLocaleString()}
+                </p>
+                {!booking.paidAt ? (
+                  <p className="text-sm font-semibold text-violet-900 mt-1">
+                    Balance due: ₦{Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}
+                  </p>
+                ) : null}
+              </>
+            ) : booking.paymentSummary.phase === 'awaiting_repair_invoice' ? (
+              <p className="text-sm text-violet-700 mt-1">
+                Waiting for the mechanic to submit the full repair quote after the visit.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {showAcceptRepairInvoice && booking.activeInvoice ? (
+          <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+            <p className="text-sm font-semibold text-amber-900 mb-2">Repair quote to review</p>
+            <p className="text-sm text-amber-800">
+              Total: ₦{Number(booking.activeInvoice.customerTotalNaira).toLocaleString()}
+            </p>
+            {booking.paymentSummary?.inspectionPaidNaira ? (
+              <p className="text-sm text-amber-800 mt-1">
+                Minus inspection paid: ₦{Number(booking.paymentSummary.inspectionPaidNaira).toLocaleString()}
+              </p>
+            ) : null}
+            {booking.paymentSummary ? (
+              <p className="text-sm font-semibold text-amber-900 mt-1">
+                You will pay: ₦{Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void acceptInvoice()}
+              disabled={acceptingInvoice}
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 disabled:opacity-70"
+            >
+              {acceptingInvoice ? (
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Accept repair quote
+            </button>
+          </div>
+        ) : null}
+        {showBlockedPayment && blockedPaymentHint ? (
+          <div className="mt-4 p-4 rounded-xl bg-slate-100 border border-slate-200">
+            <p className="text-sm font-medium text-slate-500 mb-3">{blockedPayLabel}</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] bg-slate-300 text-slate-500 rounded-xl text-sm font-medium cursor-not-allowed"
+              >
+                <CreditCard className="h-4 w-4" />
+                Pay with Paystack (card/bank)
+              </button>
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] border border-slate-200 text-slate-400 rounded-xl text-sm font-medium cursor-not-allowed"
+              >
+                <Banknote className="h-4 w-4" />
+                I paid the mechanic directly
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 mt-2">{blockedPaymentHint}</p>
+          </div>
+        ) : null}
+        {showActivePayment && (
           <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <p className="text-sm font-medium text-slate-700 mb-3">Pay for this job</p>
+            <p className="text-sm font-medium text-slate-700 mb-3">
+              {booking.paymentSummary!.canPayInspection
+                ? `Pay inspection fee: ₦${Number(booking.paymentSummary!.inspectionFeeNaira).toLocaleString()}`
+                : booking.paymentSummary!.canPayRepairBalance
+                  ? `Pay repair balance: ₦${Number(booking.paymentSummary!.balanceDueNaira).toLocaleString()}`
+                  : 'Pay for this job'}
+            </p>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
@@ -767,7 +892,9 @@ export default function BookingDetail() {
           <ul className="space-y-3">
             {booking.quotes
               .filter((q: any) => q.status === 'PENDING')
-              .map((q: any) => (
+              .map((q: any) => {
+                const quoteMechPhone = mechanicPhone(q.mechanic)
+                return (
                 <li
                   key={q.id}
                   className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"
@@ -808,6 +935,14 @@ export default function BookingDetail() {
                       {q.message && (
                         <p className="text-sm text-slate-600 mt-1">{q.message}</p>
                       )}
+                      {quoteMechPhone ? (
+                        <a
+                          href={`tel:${quoteMechPhone.replace(/\s/g, '')}`}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 mt-2"
+                        >
+                          Call mechanic
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -834,7 +969,8 @@ export default function BookingDetail() {
                     </button>
                   </div>
                 </li>
-              ))}
+                )
+              })}
           </ul>
           {booking.quotes.filter((q: any) => q.status === 'PENDING').length === 0 && (
             <p className="text-sm text-slate-500">No pending quotes. Accept one above or wait for more.</p>

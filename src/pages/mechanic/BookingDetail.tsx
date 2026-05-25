@@ -50,6 +50,7 @@ export default function MechanicBookingDetail() {
   const [quoteType, setQuoteType] = useState<'STANDARD' | 'INSPECTION'>('STANDARD')
   const [quoteMessage, setQuoteMessage] = useState('')
   const [invoiceSubmitting, setInvoiceSubmitting] = useState(false)
+  const [submittingInvoice, setSubmittingInvoice] = useState(false)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [clarificationQuestion, setClarificationQuestion] = useState('')
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false)
@@ -222,7 +223,7 @@ export default function MechanicBookingDetail() {
         labourCost: parseFloat(invoiceBreakdown.labourCost) || 0,
         otherFees: parseFloat(invoiceBreakdown.otherFees) || 0,
       })
-      toast.success('Job costing saved')
+      toast.success('Draft saved')
       loadBooking()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to save costing'))
@@ -231,10 +232,34 @@ export default function MechanicBookingDetail() {
     }
   }
 
-  const canSetInvoice =
+  const submitRepairInvoice = async () => {
+    if (!id) return
+    setSubmittingInvoice(true)
+    try {
+      await bookingsAPI.submitInvoice(id)
+      toast.success('Repair quote sent to customer for approval')
+      loadBooking()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit repair quote'))
+    } finally {
+      setSubmittingInvoice(false)
+    }
+  }
+
+  const isInspectionJob = booking?.acceptedQuote?.quoteType === 'INSPECTION'
+  const isOwnActiveJob =
     booking?.mechanicId === currentUser?.id &&
-    ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking?.status) &&
+    ['ACCEPTED', 'IN_PROGRESS'].includes(booking?.status ?? '') &&
     !booking?.paidAt
+  const inspectionPaymentPending =
+    Boolean(isInspectionJob && isOwnActiveJob && !booking?.inspectionPaidAt)
+  const canEditRepairCosting =
+    Boolean(isOwnActiveJob && (!isInspectionJob || booking?.inspectionPaidAt))
+  const repairInvoiceStatus = booking?.activeInvoice?.status
+  const repairInvoiceLocked =
+    repairInvoiceStatus === 'SUBMITTED' || repairInvoiceStatus === 'ACCEPTED'
+
+  const canSetInvoice = canEditRepairCosting
 
   const guidanceLine = useMemo(
     () => (booking ? mechanicBookingGuidance(booking.status) : ''),
@@ -266,6 +291,8 @@ export default function MechanicBookingDetail() {
   const hasLocation = booking.locationLat != null && booking.locationLng != null
   const showCustomerPhone = canShowBookingContactPhone(booking)
   const customerPhoneNumber = showCustomerPhone ? customerPhone(booking.user) : undefined
+  const canStartWork =
+    status === 'ACCEPTED' && (!isInspectionJob || Boolean(booking.inspectionPaidAt))
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -297,8 +324,6 @@ export default function MechanicBookingDetail() {
                 >
                   Call customer
                 </a>
-              ) : booking.status === 'REQUESTED' ? (
-                <span className="text-xs text-slate-500">Phone available after quote is accepted</span>
               ) : null}
             </div>
             {booking.description && (
@@ -535,23 +560,35 @@ export default function MechanicBookingDetail() {
         )}
 
         {status !== 'REQUESTED' && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 items-center">
             {status === 'ACCEPTED' && (
-              <button
-                type="button"
-                onClick={() => updateStatus('IN_PROGRESS')}
-                disabled={statusUpdating}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {statusUpdating ? (
-                  <>
-                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Updating…
-                  </>
-                ) : (
-                  'Start work'
-                )}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => updateStatus('IN_PROGRESS')}
+                  disabled={!canStartWork || statusUpdating}
+                  title={
+                    !canStartWork && isInspectionJob
+                      ? 'Customer must pay the inspection fee first'
+                      : undefined
+                  }
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {statusUpdating ? (
+                    <>
+                      <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Updating…
+                    </>
+                  ) : (
+                    'Start work'
+                  )}
+                </button>
+                {!canStartWork && isInspectionJob ? (
+                  <p className="text-sm text-amber-700 w-full sm:w-auto">
+                    Available after the customer pays the inspection fee.
+                  </p>
+                ) : null}
+              </>
             )}
             {status === 'IN_PROGRESS' && (
               <button
@@ -578,21 +615,95 @@ export default function MechanicBookingDetail() {
             <PricingBreakdownSummary summary={booking.pricingSummary} />
           </div>
         )}
+        {inspectionPaymentPending ? (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <h3 className="font-medium text-slate-800 mb-2">Full repair quote</h3>
+            <p className="text-sm text-amber-800 mb-3 border-l-4 border-amber-300 pl-3">
+              The customer pays the inspection fee before you can submit the full repair quote.
+            </p>
+            <div className="pointer-events-none opacity-50 select-none" aria-hidden>
+              <PricingBreakdownFields values={invoiceBreakdown} onChange={() => {}} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2.5 bg-slate-200 text-slate-500 rounded-xl text-sm font-medium cursor-not-allowed"
+              >
+                Save draft
+              </button>
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2.5 border border-slate-200 text-slate-400 rounded-xl text-sm font-medium cursor-not-allowed"
+              >
+                Send to customer for approval
+              </button>
+            </div>
+          </div>
+        ) : null}
         {canSetInvoice && (
           <div className="mt-4 pt-4 border-t border-slate-100">
-            <h3 className="font-medium text-slate-800 mb-2">Job costing</h3>
+            <h3 className="font-medium text-slate-800 mb-2">
+              {isInspectionJob ? 'Full repair quote' : 'Job costing'}
+            </h3>
             <p className="text-sm text-slate-500 mb-3">
-              Break down parts, labour, and other fees. Customer pays the total; platform fee applies to labour only.
+              {isInspectionJob
+                ? 'After the visit, break down the full repair cost. The customer pays the balance after accepting your quote.'
+                : 'Break down parts, labour, and other fees. Customer pays the total; platform fee applies to labour only.'}
             </p>
-            <PricingBreakdownFields values={invoiceBreakdown} onChange={setInvoiceBreakdown} />
-            <button
-              type="button"
-              onClick={saveInvoice}
-              disabled={invoiceSubmitting}
-              className="mt-3 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-60"
-            >
-              {invoiceSubmitting ? 'Saving…' : 'Save costing'}
-            </button>
+            {repairInvoiceLocked ? (
+              <p className="text-sm text-amber-800 mb-3 border-l-4 border-amber-300 pl-3">
+                {repairInvoiceStatus === 'SUBMITTED'
+                  ? 'Waiting for the customer to accept this repair quote. You cannot edit it until they respond.'
+                  : 'Repair quote accepted — the customer can pay the balance.'}
+              </p>
+            ) : null}
+            <div className={repairInvoiceLocked ? 'pointer-events-none opacity-60 select-none' : undefined}>
+              <PricingBreakdownFields values={invoiceBreakdown} onChange={setInvoiceBreakdown} />
+            </div>
+            <p className="mt-2 text-sm font-medium text-slate-700">
+              Total: ₦{pricingTotal(invoiceBreakdown).toLocaleString()}
+            </p>
+            {isInspectionJob && booking.inspectionPaidAmount ? (
+              <p className="mt-1 text-sm text-slate-600">
+                Customer balance after inspection credit: ₦
+                {Math.max(
+                  0,
+                  pricingTotal(invoiceBreakdown) - Number(booking.inspectionPaidAmount),
+                ).toLocaleString()}
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={saveInvoice}
+                disabled={invoiceSubmitting || repairInvoiceLocked}
+                className="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {invoiceSubmitting ? 'Saving…' : 'Save draft'}
+              </button>
+              {(repairInvoiceStatus === 'DRAFT' || !repairInvoiceStatus) && (
+                <button
+                  type="button"
+                  onClick={() => void submitRepairInvoice()}
+                  disabled={submittingInvoice || invoiceSubmitting || repairInvoiceLocked}
+                  className="px-4 py-2.5 border border-primary-600 text-primary-700 rounded-xl text-sm font-medium hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingInvoice ? 'Sending…' : 'Send to customer for approval'}
+                </button>
+              )}
+              {repairInvoiceStatus === 'SUBMITTED' ? (
+                <span className="self-center text-sm text-amber-700 font-medium">
+                  Awaiting customer approval
+                </span>
+              ) : null}
+              {repairInvoiceStatus === 'ACCEPTED' ? (
+                <span className="self-center text-sm text-emerald-700 font-medium">
+                  Customer accepted — awaiting balance payment
+                </span>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

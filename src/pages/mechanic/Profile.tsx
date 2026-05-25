@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { ProfileFold } from '../../components/ProfileFold'
 
+const MAX_AVATAR_BYTES = 10 * 1024 * 1024
+
 type ProfileForm = {
   phone: string
   address: string
@@ -304,8 +306,8 @@ export default function MechanicProfile() {
       toast.error('Please use JPEG, PNG or WebP images')
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Photo must be under 2MB')
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error('Photo must be under 10MB')
       return
     }
     setAvatarUploading(true)
@@ -663,7 +665,7 @@ export default function MechanicProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Your photo
             </label>
-            <p className="text-xs text-gray-500 mb-2">Shown to users when they search for mechanics. JPEG, PNG or WebP, max 2MB.</p>
+            <p className="text-xs text-gray-500 mb-2">Shown to users when they search for mechanics. JPEG, PNG or WebP, max 10MB.</p>
             <input
               ref={avatarInputRef}
               type="file"
