@@ -356,7 +356,7 @@ export default function MechanicProfile() {
             setWorkshopLocationAddress(null)
             setWorkshopAddressLoading(false)
           })
-        toast.success('Workshop location set — you’ll appear in nearby search')
+        toast.success('Workshop location set. You’ll appear in nearby search')
       },
       (error: GeolocationPositionError) => {
         const canRetry = error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT
@@ -442,7 +442,7 @@ export default function MechanicProfile() {
           } = payload
           await mechanicsAPI.updateProfile(payloadWithoutAvailabilityFields)
           toast.success(
-            'Profile updated. Reply-time fields could not be saved — update the API or redeploy the latest backend.'
+            'Profile updated. Reply-time fields could not be saved. Update the API or redeploy the latest backend.'
           )
         } else {
           throw firstError
@@ -498,9 +498,9 @@ export default function MechanicProfile() {
   }
 
   const ratingLabel =
-    stats && stats.ratingCount > 0 && stats.averageRating != null ? `${stats.averageRating} \u2605` : '—'
-  const jobsLabel = stats != null ? String(stats.jobsCompleted) : '—'
-  const winLabel = stats?.quoteWinRate != null ? `${stats.quoteWinRate}%` : '—'
+    stats && stats.ratingCount > 0 && stats.averageRating != null ? `${stats.averageRating} \u2605` : ''
+  const jobsLabel = stats != null ? String(stats.jobsCompleted) : ''
+  const winLabel = stats?.quoteWinRate != null ? `${stats.quoteWinRate}%` : ''
 
   return (
     <div className="max-w-2xl">
@@ -515,7 +515,7 @@ export default function MechanicProfile() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{profile?.companyName || 'Your workshop'}</h1>
           <p className="text-sm text-slate-600 mt-1">
-            {[profile?.ownerFullName, profile?.email].filter(Boolean).join(' · ') || '—'}
+            {[profile?.ownerFullName, profile?.email].filter(Boolean).join(' · ') || ''}
           </p>
           <div className="flex flex-wrap justify-center gap-2 mt-3">
             <span className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-primary-100 px-3 py-1 text-xs font-semibold text-primary-800">

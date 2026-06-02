@@ -15,8 +15,10 @@ import {
   type PricingBreakdownValues,
 } from '../../components/PricingBreakdownFields'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
+import { MechanicCostStatusBanner } from '../../components/MechanicCostStatusBanner'
 import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidation'
 import { canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
+import { isLabourMissing, LABOUR_REQUIRED_MESSAGE } from '../../lib/priceBreakdownDisplay'
 
 const MAX_QUOTE_PRICE_REVISIONS = 3
 
@@ -148,6 +150,10 @@ export default function MechanicBookingDetail() {
       toast.error(isInspection ? 'Enter an inspection / diagnosis fee' : 'Enter parts, labour, or other fees')
       return
     }
+    if (!isInspection && isLabourMissing(parseFloat(quoteBreakdown.labourCost) || 0)) {
+      toast.error(LABOUR_REQUIRED_MESSAGE)
+      return
+    }
     const payload = isInspection
       ? {
           quoteType: 'INSPECTION' as const,
@@ -211,7 +217,12 @@ export default function MechanicBookingDetail() {
 
   const saveInvoice = async () => {
     if (!id) return
+    const labour = parseFloat(invoiceBreakdown.labourCost) || 0
     const total = pricingTotal(invoiceBreakdown)
+    if (isLabourMissing(labour)) {
+      toast.error(LABOUR_REQUIRED_MESSAGE)
+      return
+    }
     if (total <= 0) {
       toast.error('Enter a valid cost breakdown')
       return
@@ -234,6 +245,10 @@ export default function MechanicBookingDetail() {
 
   const submitRepairInvoice = async () => {
     if (!id) return
+    if (isLabourMissing(parseFloat(invoiceBreakdown.labourCost) || 0)) {
+      toast.error(LABOUR_REQUIRED_MESSAGE)
+      return
+    }
     setSubmittingInvoice(true)
     try {
       await bookingsAPI.submitInvoice(id)
@@ -374,12 +389,12 @@ export default function MechanicBookingDetail() {
             {booking.mechanicId && booking.mechanicId === currentUser?.id ? (
               <>
                 <MessageCircle className="h-4 w-4 text-primary-600" />
-                Job sent to you — review details before quoting
+                Job sent to you. Review details before quoting
               </>
             ) : (
               <>
                 <HelpCircle className="h-4 w-4 text-primary-600" />
-                Job details — use this to set your price
+                Job details: use this to set your price
               </>
             )}
           </h3>
@@ -457,7 +472,7 @@ export default function MechanicBookingDetail() {
         {canQuoteWhileRequested && (
           <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
             <h3 className="font-medium text-slate-800 mb-2">
-              {myQuote ? 'Update your quote' : 'Submit your price for this job'}
+              {myQuote ? 'Step 1: Revise your bid' : 'Step 1: Submit your bid for this job'}
             </h3>
             <div className="flex flex-wrap gap-2 mb-3">
               <button
@@ -500,7 +515,21 @@ export default function MechanicBookingDetail() {
                 />
               </>
             ) : (
-              <PricingBreakdownFields values={quoteBreakdown} onChange={setQuoteBreakdown} />
+              <PricingBreakdownFields
+                values={quoteBreakdown}
+                onChange={setQuoteBreakdown}
+                baseline={
+                  myQuote
+                    ? {
+                        partsNaira: Number(myQuote.partsNaira ?? 0),
+                        labourNaira: Number(myQuote.labourNaira ?? myQuote.proposedPrice ?? 0),
+                        otherFeesNaira: Number(myQuote.otherFeesNaira ?? 0),
+                        totalNaira: Number(myQuote.proposedPrice ?? 0),
+                        label: 'Your current bid',
+                      }
+                    : null
+                }
+              />
             )}
             <div className="flex flex-wrap gap-3 items-end mt-3">
               <div className="flex-1 min-w-[180px]">
@@ -525,9 +554,9 @@ export default function MechanicBookingDetail() {
                     Submitting…
                   </>
                 ) : myQuote ? (
-                  'Update quote'
+                  'Update bid price'
                 ) : (
-                  'Submit quote'
+                  'Submit bid'
                 )}
               </button>
             </div>
@@ -549,7 +578,7 @@ export default function MechanicBookingDetail() {
                 <ul className="text-sm space-y-1 text-slate-600">
                   {competingQuotes.map((q: any) => (
                     <li key={q.id}>
-                      {q.mechanic?.companyName ?? 'Mechanic'} — {'\u20A6'}
+                      {q.mechanic?.companyName ?? 'Mechanic'} · {'\u20A6'}
                       {Number(q.proposedPrice).toLocaleString()} · {quoteStatusLabel(q.status)}
                     </li>
                   ))}
@@ -645,33 +674,46 @@ export default function MechanicBookingDetail() {
         {canSetInvoice && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <h3 className="font-medium text-slate-800 mb-2">
-              {isInspectionJob ? 'Full repair quote' : 'Job costing'}
+              {isInspectionJob ? 'Step 2: Full repair quote (after visit)' : 'Step 2: Job costing (customer approves changes)'}
             </h3>
             <p className="text-sm text-slate-500 mb-3">
               {isInspectionJob
-                ? 'After the visit, break down the full repair cost. The customer pays the balance after accepting your quote.'
-                : 'Break down parts, labour, and other fees. Customer pays the total; platform fee applies to labour only.'}
+                ? 'After the visit, break down the full repair cost. The customer pays only the balance after accepting. They already paid the inspection fee separately.'
+                : 'If the final cost differs from your accepted bid, save a draft and send it for customer approval before they pay.'}
             </p>
-            {repairInvoiceLocked ? (
-              <p className="text-sm text-amber-800 mb-3 border-l-4 border-amber-300 pl-3">
-                {repairInvoiceStatus === 'SUBMITTED'
-                  ? 'Waiting for the customer to accept this repair quote. You cannot edit it until they respond.'
-                  : 'Repair quote accepted — the customer can pay the balance.'}
+            {booking.paymentSummary?.inspectionPaidNaira ? (
+              <p className="text-sm text-emerald-800 mb-3 border-l-4 border-emerald-300 pl-3">
+                Customer already paid ₦{Number(booking.paymentSummary.inspectionPaidNaira).toLocaleString()} for
+                inspection.
               </p>
             ) : null}
+            <MechanicCostStatusBanner
+              status={repairInvoiceStatus}
+              rejectionReason={booking.activeInvoice?.rejectionReason}
+              balanceDueNaira={booking.paymentSummary?.balanceDueNaira}
+            />
             <div className={repairInvoiceLocked ? 'pointer-events-none opacity-60 select-none' : undefined}>
-              <PricingBreakdownFields values={invoiceBreakdown} onChange={setInvoiceBreakdown} />
+              <PricingBreakdownFields
+                values={invoiceBreakdown}
+                onChange={setInvoiceBreakdown}
+                baseline={booking.pricingBaseline}
+              />
             </div>
             <p className="mt-2 text-sm font-medium text-slate-700">
               Total: ₦{pricingTotal(invoiceBreakdown).toLocaleString()}
             </p>
             {isInspectionJob && booking.inspectionPaidAmount ? (
               <p className="mt-1 text-sm text-slate-600">
-                Customer balance after inspection credit: ₦
+                Customer pays after acceptance: ₦
                 {Math.max(
                   0,
                   pricingTotal(invoiceBreakdown) - Number(booking.inspectionPaidAmount),
-                ).toLocaleString()}
+                ).toLocaleString()}{' '}
+                (full repair ₦{pricingTotal(invoiceBreakdown).toLocaleString()} minus inspection paid)
+              </p>
+            ) : booking.pricingBaseline && !isInspectionJob ? (
+              <p className="mt-1 text-sm text-slate-600">
+                Previously agreed: ₦{Number(booking.pricingBaseline.totalNaira).toLocaleString()}
               </p>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
@@ -700,7 +742,7 @@ export default function MechanicBookingDetail() {
               ) : null}
               {repairInvoiceStatus === 'ACCEPTED' ? (
                 <span className="self-center text-sm text-emerald-700 font-medium">
-                  Customer accepted — awaiting balance payment
+                  Customer accepted. Awaiting balance payment
                 </span>
               ) : null}
             </div>

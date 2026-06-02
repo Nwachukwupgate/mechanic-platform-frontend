@@ -36,12 +36,33 @@ import MechanicJobHistory from '../pages/mechanic/JobHistory'
 import MechanicWallet from '../pages/mechanic/Wallet'
 import MechanicTransactionDetail from '../pages/mechanic/TransactionDetail'
 
+// Admin
+import AdminLayout from '../layouts/AdminLayout'
+import AdminLogin from '../pages/admin/AdminLogin'
+import AdminDashboard from '../pages/admin/Dashboard'
+import AdminBookings from '../pages/admin/Bookings'
+import AdminBookingDetail from '../pages/admin/BookingDetail'
+import AdminUsers from '../pages/admin/Users'
+import AdminUserDetail from '../pages/admin/UserDetail'
+import AdminMechanics from '../pages/admin/Mechanics'
+import AdminMechanicDetail from '../pages/admin/MechanicDetail'
+import AdminTransactions from '../pages/admin/Transactions'
+import AdminTransactionDetail from '../pages/admin/TransactionDetail'
+import AdminQuotes from '../pages/admin/Quotes'
+import AdminReports from '../pages/admin/Reports'
+import AdminRatings from '../pages/admin/Ratings'
+import AdminNotifications from '../pages/admin/Notifications'
+import AdminAuditLog from '../pages/admin/AuditLog'
+import AdminPayouts from '../pages/admin/Payouts'
+import AdminAdmins from '../pages/admin/Admins'
+import AdminWebhooks from '../pages/admin/Webhooks'
+
 // Layouts
 import PublicLayout from '../layouts/PublicLayout'
 import UserLayout from '../layouts/UserLayout'
 import MechanicLayout from '../layouts/MechanicLayout'
 
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'USER' | 'MECHANIC' }) {
+function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'USER' | 'MECHANIC' | 'ADMIN' }) {
   // Use store directly to ensure we get the latest state
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
@@ -62,8 +83,8 @@ function LoginRedirect({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((state) => state.token)
 
   if (token && user) {
-    // Redirect to appropriate dashboard if already logged in
-    return <Navigate to={user.role === 'USER' ? '/user' : '/mechanic'} replace />
+    const dest = user.role === 'ADMIN' ? '/admin' : user.role === 'USER' ? '/user' : '/mechanic'
+    return <Navigate to={dest} replace />
   }
 
   return <>{children}</>
@@ -129,6 +150,34 @@ export function AppRoutes() {
         <Route path="history" element={<MechanicJobHistory />} />
         <Route path="wallet" element={<MechanicWallet />} />
         <Route path="wallet/transactions/:id" element={<MechanicTransactionDetail />} />
+      </Route>
+
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requiredRole="ADMIN">
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="bookings" element={<AdminBookings />} />
+        <Route path="bookings/:id" element={<AdminBookingDetail />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="users/:id" element={<AdminUserDetail />} />
+        <Route path="mechanics" element={<AdminMechanics />} />
+        <Route path="mechanics/:id" element={<AdminMechanicDetail />} />
+        <Route path="transactions" element={<AdminTransactions />} />
+        <Route path="transactions/:id" element={<AdminTransactionDetail />} />
+        <Route path="webhooks" element={<AdminWebhooks />} />
+        <Route path="quotes" element={<AdminQuotes />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="ratings" element={<AdminRatings />} />
+        <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="audit" element={<AdminAuditLog />} />
+        <Route path="payouts" element={<AdminPayouts />} />
+        <Route path="admins" element={<AdminAdmins />} />
       </Route>
 
       {/* 404 — must be last; uses public layout (nav + footer) */}

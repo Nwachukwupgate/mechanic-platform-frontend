@@ -86,7 +86,7 @@ export default function UserProfile() {
                 <ListOrdered className="h-4 w-4 text-primary-600 shrink-0" />
                 <div>
                   <p className="text-lg font-bold text-slate-900 leading-none">
-                    {stats?.totalBookings != null ? stats.totalBookings : '—'}
+                    {stats?.totalBookings != null ? stats.totalBookings : ''}
                   </p>
                   <p className="text-[10px] font-semibold uppercase text-slate-500 mt-0.5">Bookings</p>
                 </div>
@@ -95,7 +95,7 @@ export default function UserProfile() {
                 <CalendarCheck className="h-4 w-4 text-primary-600 shrink-0" />
                 <div>
                   <p className="text-lg font-bold text-slate-900 leading-none">
-                    {stats?.completedBookings != null ? stats.completedBookings : '—'}
+                    {stats?.completedBookings != null ? stats.completedBookings : ''}
                   </p>
                   <p className="text-[10px] font-semibold uppercase text-slate-500 mt-0.5">Completed</p>
                 </div>

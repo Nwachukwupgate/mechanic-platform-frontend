@@ -103,7 +103,8 @@ api.interceptors.response.use(
         url.includes('/auth/verify-email')
       if (!isAuthRoute) {
         useAuthStore.getState().logout()
-        window.location.href = '/login'
+        const isAdminPath = window.location.pathname.startsWith('/admin')
+        window.location.href = isAdminPath ? '/admin/login' : '/login'
       }
     }
     return Promise.reject(error)
@@ -132,6 +133,9 @@ export const authAPI = {
 
   loginMechanic: (email: string, password: string) =>
     api.post('/auth/login/mechanic', { email, password }),
+
+  loginAdmin: (email: string, password: string) =>
+    api.post('/auth/login/admin', { email, password }),
 
   verifyEmail: (token: string, role: string) =>
     api.get(`/auth/verify-email?token=${token}&role=${role}`),
@@ -244,6 +248,8 @@ export const bookingsAPI = {
   ) => api.put(`/bookings/${id}/invoice`, data),
   submitInvoice: (id: string) => api.put(`/bookings/${id}/invoice/submit`),
   acceptInvoice: (id: string) => api.put(`/bookings/${id}/invoice/accept`),
+  rejectInvoice: (id: string, reason: string) =>
+    api.put(`/bookings/${id}/invoice/reject`, { reason }),
   // Quote flow
   getOpenRequests: (radius?: number) =>
     api.get('/bookings/open-requests', { params: radius != null ? { radius } : {} }),

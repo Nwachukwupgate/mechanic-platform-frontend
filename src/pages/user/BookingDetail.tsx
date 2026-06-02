@@ -12,6 +12,12 @@ import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidatio
 import { canShowBookingContactPhone, mechanicPhone } from '../../lib/bookingContact'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import {
+  CustomerPriceBreakdownPanel,
+  quoteToPriceBreakdownLines,
+} from '../../components/CustomerPriceBreakdownPanel'
+import { BookingWhatsNextCard } from '../../components/BookingWhatsNextCard'
+import { buildCustomerWhatsNext } from '../../lib/bookingWhatsNext'
+import {
   ArrowLeft,
   CheckCircle2,
   CreditCard,
@@ -56,6 +62,8 @@ export default function BookingDetail() {
   const [answerSaving, setAnswerSaving] = useState<string | null>(null)
   const [paymentLoading, setPaymentLoading] = useState<'paystack' | 'direct' | null>(null)
   const [acceptingInvoice, setAcceptingInvoice] = useState(false)
+  const [rejectingInvoice, setRejectingInvoice] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
   const [publicFlags, setPublicFlags] = useState<Record<string, boolean | number | string> | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -225,6 +233,20 @@ export default function BookingDetail() {
     })
   }, [booking])
 
+  const whatsNext = useMemo(() => {
+    if (!booking) return null
+    const pending = (booking.quotes ?? []).filter((q: any) => q.status === 'PENDING').length
+    return buildCustomerWhatsNext({
+      status: booking.status,
+      pendingQuoteCount: pending,
+      hasAssignedMechanic: Boolean(booking.mechanicId),
+      assignedMechanicName: booking.mechanic?.companyName,
+      paymentSummary: booking.paymentSummary,
+      showAcceptRepairInvoice: booking.paymentSummary?.phase === 'review_repair_invoice',
+      paidAt: booking.paidAt,
+    })
+  }, [booking])
+
   const historicalQuotes = useMemo(() => {
     if (!booking?.quotes?.length) return []
     return [...booking.quotes]
@@ -277,7 +299,7 @@ export default function BookingDetail() {
       toast.success('Photos uploaded')
       loadBooking()
     } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Upload failed — check your connection and try again'))
+      toast.error(getApiErrorMessage(e, 'Upload failed. Check your connection and try again'))
     } finally {
       setPhotoUploading(false)
     }
@@ -349,6 +371,26 @@ export default function BookingDetail() {
     }
   }
 
+  const rejectInvoice = async () => {
+    if (!id) return
+    const reason = rejectReason.trim()
+    if (reason.length < 3) {
+      toast.error('Please tell the mechanic why you are declining (at least a few words).')
+      return
+    }
+    setRejectingInvoice(true)
+    try {
+      await bookingsAPI.rejectInvoice(id, reason)
+      toast.success('Quote declined. The mechanic can send an updated quote')
+      setRejectReason('')
+      loadBooking()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to decline repair quote'))
+    } finally {
+      setRejectingInvoice(false)
+    }
+  }
+
   const payWithPaystack = async () => {
     if (!booking) return
     setPaymentLoading('paystack')
@@ -396,7 +438,6 @@ export default function BookingDetail() {
   const otherPartyName = booking.mechanic?.companyName ?? 'Mechanic'
   const hasLocation = booking.locationLat != null && booking.locationLng != null
   const showAcceptRepairInvoice = booking.paymentSummary?.phase === 'review_repair_invoice'
-  const paymentPhase = booking.paymentSummary?.phase
   const showActivePayment =
     paymentsEnabled &&
     booking.paymentSummary &&
@@ -404,21 +445,36 @@ export default function BookingDetail() {
       booking.paymentSummary.canPayRepairBalance ||
       booking.paymentSummary.canPayStandard) &&
     ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status)
-  const showBlockedPayment =
-    paymentsEnabled &&
-    booking.paymentSummary?.isInspectionFlow &&
-    ['ACCEPTED', 'IN_PROGRESS', 'DONE'].includes(booking.status) &&
-    (paymentPhase === 'awaiting_repair_invoice' || paymentPhase === 'review_repair_invoice')
-  const blockedPaymentHint =
-    paymentPhase === 'awaiting_repair_invoice'
-      ? 'Available after your mechanic submits the full repair quote.'
-      : paymentPhase === 'review_repair_invoice' && booking.paymentSummary
-        ? `Accept the repair quote above first — then pay ₦${Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}.`
-        : null
-  const blockedPayLabel =
-    paymentPhase === 'review_repair_invoice' && booking.paymentSummary
-      ? `Pay repair balance: ₦${Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}`
-      : 'Pay repair balance'
+  const reviewQuoteTotalNaira =
+    booking.paymentSummary?.pendingRepairTotalNaira ??
+    booking.activeInvoice?.customerTotalNaira ??
+    null
+
+  const invForBreakdown = booking.activeInvoice
+  const psForBreakdown = booking.paymentSummary
+  const summaryForBreakdown = booking.pricingSummary
+  const breakdownTotalNaira =
+    reviewQuoteTotalNaira ??
+    invForBreakdown?.customerTotalNaira ??
+    summaryForBreakdown?.customerTotalNaira ??
+    null
+  const customerBreakdownLines =
+    breakdownTotalNaira != null
+      ? {
+          partsNaira: Number(invForBreakdown?.partsNaira ?? summaryForBreakdown?.partsNaira ?? 0),
+          labourNaira: Number(invForBreakdown?.labourNaira ?? summaryForBreakdown?.labourNaira ?? 0),
+          otherFeesNaira: Number(invForBreakdown?.otherFeesNaira ?? summaryForBreakdown?.otherFeesNaira ?? 0),
+          totalNaira: Number(breakdownTotalNaira),
+          inspectionPaidNaira:
+            psForBreakdown?.inspectionPaidNaira > 0 ? Number(psForBreakdown.inspectionPaidNaira) : undefined,
+          balanceDueNaira:
+            psForBreakdown?.balanceDueNaira != null ? Number(psForBreakdown.balanceDueNaira) : undefined,
+          previouslyAgreedNaira:
+            booking.pricingBaseline?.totalNaira != null
+              ? Number(booking.pricingBaseline.totalNaira)
+              : undefined,
+        }
+      : null
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -472,17 +528,19 @@ export default function BookingDetail() {
             {booking.status.replace('_', ' ')}
           </span>
         </div>
-        {guidanceLine && (
+        {whatsNext ? (
+          <BookingWhatsNextCard step={whatsNext} />
+        ) : guidanceLine ? (
           <p className="mt-3 text-sm text-slate-700 leading-relaxed border-l-4 border-primary-200 pl-3">
             {guidanceLine}
           </p>
-        )}
+        ) : null}
         {booking.openRequestExpiresAt && booking.status === 'REQUESTED' && !booking.mechanicId && (
           <p className="mt-2 text-xs text-slate-500">
             Open requests close after{' '}
             {new Date(booking.openRequestExpiresAt).toLocaleString()}
             {new Date(booking.openRequestExpiresAt) < new Date()
-              ? ' (expired — refresh if status has not updated).'
+              ? ' (expired. Refresh if status has not updated).'
               : '.'}
           </p>
         )}
@@ -536,91 +594,62 @@ export default function BookingDetail() {
             Estimated cost: ₦{Number(booking.estimatedCost).toLocaleString()}
           </p>
         ) : null}
-        {booking.paymentSummary?.isInspectionFlow && booking.status !== 'REQUESTED' ? (
-          <div className="mt-4 p-4 rounded-xl bg-violet-50 border border-violet-200">
-            <p className="text-sm font-semibold text-violet-900 mb-2">Payment progress</p>
-            {booking.paymentSummary.inspectionPaidNaira > 0 ? (
-              <p className="text-sm text-violet-800">
-                Inspection paid: ₦{Number(booking.paymentSummary.inspectionPaidNaira).toLocaleString()}
-              </p>
-            ) : (
-              <p className="text-sm text-violet-800">
-                Inspection fee due: ₦{Number(booking.paymentSummary.inspectionFeeNaira).toLocaleString()}
-              </p>
-            )}
-            {booking.paymentSummary.repairTotalNaira != null ? (
-              <>
-                <p className="text-sm text-violet-800 mt-1">
-                  Full repair total: ₦{Number(booking.paymentSummary.repairTotalNaira).toLocaleString()}
-                </p>
-                {!booking.paidAt ? (
-                  <p className="text-sm font-semibold text-violet-900 mt-1">
-                    Balance due: ₦{Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}
-                  </p>
-                ) : null}
-              </>
-            ) : booking.paymentSummary.phase === 'awaiting_repair_invoice' ? (
-              <p className="text-sm text-violet-700 mt-1">
-                Waiting for the mechanic to submit the full repair quote after the visit.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
         {showAcceptRepairInvoice && booking.activeInvoice ? (
           <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
-            <p className="text-sm font-semibold text-amber-900 mb-2">Repair quote to review</p>
-            <p className="text-sm text-amber-800">
-              Total: ₦{Number(booking.activeInvoice.customerTotalNaira).toLocaleString()}
-            </p>
-            {booking.paymentSummary?.inspectionPaidNaira ? (
-              <p className="text-sm text-amber-800 mt-1">
-                Minus inspection paid: ₦{Number(booking.paymentSummary.inspectionPaidNaira).toLocaleString()}
-              </p>
+            {customerBreakdownLines ? (
+              <CustomerPriceBreakdownPanel
+                lines={customerBreakdownLines}
+                title="Updated price breakdown"
+                defaultOpen
+              />
             ) : null}
-            {booking.paymentSummary ? (
-              <p className="text-sm font-semibold text-amber-900 mt-1">
-                You will pay: ₦{Number(booking.paymentSummary.balanceDueNaira).toLocaleString()}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void acceptInvoice()}
-              disabled={acceptingInvoice}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 disabled:opacity-70"
-            >
-              {acceptingInvoice ? (
-                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              Accept repair quote
-            </button>
-          </div>
-        ) : null}
-        {showBlockedPayment && blockedPaymentHint ? (
-          <div className="mt-4 p-4 rounded-xl bg-slate-100 border border-slate-200">
-            <p className="text-sm font-medium text-slate-500 mb-3">{blockedPayLabel}</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] bg-slate-300 text-slate-500 rounded-xl text-sm font-medium cursor-not-allowed"
+                onClick={() => void acceptInvoice()}
+                disabled={acceptingInvoice || rejectingInvoice}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 disabled:opacity-70"
               >
-                <CreditCard className="h-4 w-4" />
-                Pay with Paystack (card/bank)
-              </button>
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[48px] border border-slate-200 text-slate-400 rounded-xl text-sm font-medium cursor-not-allowed"
-              >
-                <Banknote className="h-4 w-4" />
-                I paid the mechanic directly
+                {acceptingInvoice ? (
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Accept quote
               </button>
             </div>
-            <p className="text-xs text-slate-600 mt-2">{blockedPaymentHint}</p>
+            <div className="mt-4 pt-4 border-t border-amber-200">
+              <p className="text-sm font-medium text-amber-900 mb-2">Decline this quote</p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g. Price is higher than we discussed. Please revise labour."
+                rows={3}
+                className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => void rejectInvoice()}
+                disabled={rejectingInvoice || acceptingInvoice}
+                className="mt-2 inline-flex items-center gap-2 px-4 py-2.5 border border-amber-400 text-amber-900 rounded-xl text-sm font-medium hover:bg-amber-100 disabled:opacity-70"
+              >
+                {rejectingInvoice ? (
+                  <span className="inline-block h-4 w-4 border-2 border-amber-700 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                Decline quote
+              </button>
+            </div>
           </div>
         ) : null}
+        {showActivePayment && customerBreakdownLines && (
+          <CustomerPriceBreakdownPanel
+            lines={customerBreakdownLines}
+            title="What you are paying for"
+            defaultOpen
+          />
+        )}
         {showActivePayment && (
           <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <p className="text-sm font-medium text-slate-700 mb-3">
@@ -886,7 +915,7 @@ export default function BookingDetail() {
           <h2 className="text-lg font-semibold text-slate-800 mb-3">Quotes from mechanics</h2>
           <p className="text-sm text-slate-600 mb-2">Accept one or reject any you don’t want.</p>
           <p className="text-xs text-slate-500 mb-4">
-            Mechanics can update their price a limited number of times after your answers or new details — check back
+            Mechanics can update their price a limited number of times after your answers or new details. Check back
             if a quote changes.
           </p>
           <ul className="space-y-3">
@@ -894,6 +923,7 @@ export default function BookingDetail() {
               .filter((q: any) => q.status === 'PENDING')
               .map((q: any) => {
                 const quoteMechPhone = mechanicPhone(q.mechanic)
+                const quoteBreakdown = quoteToPriceBreakdownLines(q)
                 return (
                 <li
                   key={q.id}
@@ -925,13 +955,15 @@ export default function BookingDetail() {
                           Full repair quote after the mechanic checks your vehicle on site.
                         </p>
                       ) : null}
-                      {(q.partsNaira > 0 || q.labourNaira > 0) && !isQuoteInspection(q) && (
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {q.partsNaira > 0 && `Parts ₦${Number(q.partsNaira).toLocaleString()}`}
-                          {q.partsNaira > 0 && q.labourNaira > 0 && ' · '}
-                          {q.labourNaira > 0 && `Labour ₦${Number(q.labourNaira).toLocaleString()}`}
-                        </p>
-                      )}
+                      {quoteBreakdown ? (
+                        <CustomerPriceBreakdownPanel
+                          lines={quoteBreakdown}
+                          title="Quote breakdown"
+                          defaultOpen={
+                            booking.quotes.filter((x: any) => x.status === 'PENDING').length === 1
+                          }
+                        />
+                      ) : null}
                       {q.message && (
                         <p className="text-sm text-slate-600 mt-1">{q.message}</p>
                       )}
@@ -989,7 +1021,7 @@ export default function BookingDetail() {
                 className="flex flex-wrap justify-between gap-2 py-2 border-b border-slate-200 last:border-0"
               >
                 <span className="text-slate-700">
-                  {q.mechanic?.companyName ?? 'Mechanic'} — {'\u20A6'}
+                  {q.mechanic?.companyName ?? 'Mechanic'} · {'\u20A6'}
                   {Number(q.proposedPrice).toLocaleString()}
                 </span>
                 <span className="text-slate-500 font-medium">{quoteStatusLabel(q.status)}</span>

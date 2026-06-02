@@ -258,7 +258,7 @@ export default function MechanicDashboard() {
               <h2 id="pending-heading" className="text-base font-semibold text-slate-900">
                 Pending
               </h2>
-              <p className="text-sm text-slate-500">Customer sent the job to you — submit your quote on the booking page</p>
+              <p className="text-sm text-slate-500">Customer sent the job to you. Submit your quote on the booking page</p>
             </div>
           </div>
           {pendingBookings.length > 0 && (

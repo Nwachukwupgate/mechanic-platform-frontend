@@ -486,7 +486,7 @@ export default function MechanicWallet() {
                   <Link to={`/mechanic/wallet/transactions/${encodeURIComponent(t.id)}`} className="font-medium text-slate-800 hover:text-primary-700 hover:underline">
                     {typeLabels[t.type] || t.type}
                   </Link>
-                  <p className="text-sm text-slate-500 truncate">{t.description || t.bookingId || '—'}</p>
+                  <p className="text-sm text-slate-500 truncate">{t.description || t.bookingId || ''}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {new Date(t.createdAt).toLocaleString()}
                   </p>

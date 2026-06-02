@@ -92,7 +92,7 @@ export function DeleteAccountSheet({ open, onClose, onConfirm, loading }: Props)
         {step === 'reasons' ? (
           <div className="px-5 py-4 flex flex-col min-h-0 flex-1 overflow-hidden">
             <p className="text-sm text-slate-600 mb-4">
-              We’re sorry to see you go. Tell us why you’re leaving — it helps us improve.
+              We’re sorry to see you go. Tell us why you’re leaving. It helps us improve.
             </p>
             <div className="overflow-y-auto max-h-[min(320px,50vh)] space-y-2.5 pr-1 mb-3">
               {USER_DELETE_REASON_OPTIONS.map((opt) => {

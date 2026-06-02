@@ -128,7 +128,7 @@ export default function UserWallet() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium text-slate-800">{typeLabels[t.type] || t.type}</p>
-                  <p className="text-sm text-slate-500 truncate">{t.description || t.bookingId || '—'}</p>
+                  <p className="text-sm text-slate-500 truncate">{t.description || t.bookingId || ''}</p>
                   {t.mechanic && (
                     <p className="text-xs text-slate-500">{t.mechanic.companyName}</p>
                   )}

@@ -218,7 +218,7 @@ export default function FindMechanics() {
     try {
       const results = await searchAddress(q)
       if (results.length === 0) {
-        toast.error('No results — try a nearby city or landmark')
+        toast.error('No results. Try a nearby city or landmark')
         return
       }
       setAddressSuggestions(results)
@@ -336,12 +336,12 @@ export default function FindMechanics() {
         try {
           await bookingsAPI.uploadBookingPhotos(bookingId, jobPhotos.slice(0, 3))
         } catch (uploadErr) {
-          toast.error(getApiErrorMessage(uploadErr, 'Booking created but photos failed to upload — add them from the booking page.'))
+          toast.error(getApiErrorMessage(uploadErr, 'Booking created but photos failed to upload. Add them from the booking page.'))
         }
       }
       toast.success(
         mechanicId
-          ? 'Request sent. The mechanic can send you a quote on this job — open the booking to accept it and chat.'
+          ? 'Request sent. The mechanic can send you a quote on this job. Open the booking to accept it and chat.'
           : 'Job posted. Mechanics can send you quotes.'
       )
       setJobPhotos([])
@@ -470,8 +470,8 @@ export default function FindMechanics() {
             Describe the issue (optional)
           </label>
           <p className="text-xs text-slate-500 mb-2">
-            Include when it started, symptoms, warning lights, and sounds. Mechanics quote from your notes and photos —
-            you can also call each other while comparing quotes.
+            Include when it started, symptoms, warning lights, and sounds. Mechanics quote from your notes and photos.
+            You can also call each other while comparing quotes.
           </p>
           <textarea
             value={diagnosticNotes}
@@ -553,7 +553,7 @@ export default function FindMechanics() {
                   {jobPhotos.length >= 3 ? 'Maximum 3 photos' : 'Drop photos here or tap to browse'}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {jobPhotos.length}/3 selected — add at least {RECOMMENDED_JOB_PHOTOS} when you can
+                  {jobPhotos.length}/3 selected. Add at least {RECOMMENDED_JOB_PHOTOS} when you can
                 </p>
               </div>
             </div>
@@ -706,7 +706,7 @@ export default function FindMechanics() {
               <span className="text-sm">
                 {typeof mechanic.averageRating === 'number'
                   ? mechanic.averageRating.toFixed(1)
-                  : '—'}
+                  : ''}
                 {typeof mechanic.distanceKm === 'number' && (
                   <span className="text-gray-500 ml-2">
                     · {mechanic.distanceKm < 1
