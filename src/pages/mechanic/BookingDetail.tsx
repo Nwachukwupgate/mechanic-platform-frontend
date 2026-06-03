@@ -8,7 +8,7 @@ import { BookingChat } from '../../components/BookingChat'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { mechanicBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
-import { ArrowLeft, Banknote, MapPin, User, MessageCircle, HelpCircle, ImageIcon } from 'lucide-react'
+import { ArrowLeft, MapPin, User, MessageCircle, HelpCircle, ImageIcon } from 'lucide-react'
 import {
   PricingBreakdownFields,
   pricingTotal,
@@ -16,9 +16,10 @@ import {
 } from '../../components/PricingBreakdownFields'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import { MechanicCostStatusBanner } from '../../components/MechanicCostStatusBanner'
-import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidation'
 import { canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
 import { isLabourMissing, LABOUR_REQUIRED_MESSAGE } from '../../lib/priceBreakdownDisplay'
+import { defaultPricingBreakdown } from '../../components/PricingBreakdownFields'
+import { activePartLines, partLinesFromQuote, partsPayload } from '../../lib/partLineItems'
 
 const MAX_QUOTE_PRICE_REVISIONS = 3
 
@@ -38,17 +39,9 @@ export default function MechanicBookingDetail() {
   const [booking, setBooking] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [status, setStatus] = useState('')
-  const [statusUpdating, setStatusUpdating] = useState(false)
-  const [quoteBreakdown, setQuoteBreakdown] = useState<PricingBreakdownValues>({
-    partsCost: '',
-    labourCost: '',
-    otherFees: '',
-  })
-  const [invoiceBreakdown, setInvoiceBreakdown] = useState<PricingBreakdownValues>({
-    partsCost: '',
-    labourCost: '',
-    otherFees: '',
-  })
+  const [statusUpdating] = useState(false)
+  const [quoteBreakdown, setQuoteBreakdown] = useState<PricingBreakdownValues>(defaultPricingBreakdown())
+  const [invoiceBreakdown, setInvoiceBreakdown] = useState<PricingBreakdownValues>(defaultPricingBreakdown())
   const [quoteType, setQuoteType] = useState<'STANDARD' | 'INSPECTION'>('STANDARD')
   const [quoteMessage, setQuoteMessage] = useState('')
   const [invoiceSubmitting, setInvoiceSubmitting] = useState(false)
@@ -100,8 +93,10 @@ export default function MechanicBookingDetail() {
       const q = res.data.quotes?.find((x: any) => x.mechanicId === currentUser?.id || x.mechanic?.id === currentUser?.id)
       if (q) {
         setQuoteType(q.quoteType === 'INSPECTION' ? 'INSPECTION' : 'STANDARD')
+        const qLines = partLinesFromQuote(q)
         setQuoteBreakdown({
-          partsCost: q.partsNaira != null ? String(q.partsNaira) : '0',
+          partsCost: String(q.partsNaira ?? 0),
+          partLineItems: qLines.length ? qLines : defaultPricingBreakdown().partLineItems,
           labourCost:
             q.labourNaira != null ? String(q.labourNaira) : String(q.proposedPrice ?? ''),
           otherFees: q.otherFeesNaira != null ? String(q.otherFeesNaira) : '0',
@@ -110,8 +105,10 @@ export default function MechanicBookingDetail() {
       }
       const inv = res.data.activeInvoice
       if (inv) {
+        const iLines = partLinesFromQuote(inv)
         setInvoiceBreakdown({
           partsCost: String(inv.partsNaira ?? 0),
+          partLineItems: iLines.length ? iLines : defaultPricingBreakdown().partLineItems,
           labourCost: String(inv.labourNaira ?? 0),
           otherFees: String(inv.otherFeesNaira ?? 0),
         })
@@ -154,6 +151,11 @@ export default function MechanicBookingDetail() {
       toast.error(LABOUR_REQUIRED_MESSAGE)
       return
     }
+    const parts = isInspection ? { partsCost: 0, partsLineItems: [] } : partsPayload(quoteBreakdown.partLineItems)
+    if (!isInspection && parts.partsCost > 0 && activePartLines(quoteBreakdown.partLineItems).length === 0) {
+      toast.error('List each part with its price so the customer knows what they are paying for.')
+      return
+    }
     const payload = isInspection
       ? {
           quoteType: 'INSPECTION' as const,
@@ -163,7 +165,7 @@ export default function MechanicBookingDetail() {
         }
       : {
           quoteType: 'STANDARD' as const,
-          partsCost: parseFloat(quoteBreakdown.partsCost) || 0,
+          ...parts,
           labourCost: parseFloat(quoteBreakdown.labourCost) || 0,
           otherFees: parseFloat(quoteBreakdown.otherFees) || 0,
         }
@@ -227,10 +229,15 @@ export default function MechanicBookingDetail() {
       toast.error('Enter a valid cost breakdown')
       return
     }
+    const parts = partsPayload(invoiceBreakdown.partLineItems)
+    if (parts.partsCost > 0 && activePartLines(invoiceBreakdown.partLineItems).length === 0) {
+      toast.error('List each part with its price so the customer knows what they are paying for.')
+      return
+    }
     setInvoiceSubmitting(true)
     try {
       await bookingsAPI.upsertInvoice(id, {
-        partsCost: parseFloat(invoiceBreakdown.partsCost) || 0,
+        ...parts,
         labourCost: parseFloat(invoiceBreakdown.labourCost) || 0,
         otherFees: parseFloat(invoiceBreakdown.otherFees) || 0,
       })

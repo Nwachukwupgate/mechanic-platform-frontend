@@ -1,17 +1,31 @@
 import { isLabourMissing, LABOUR_REQUIRED_MESSAGE } from '../lib/priceBreakdownDisplay'
+import type { PartLineItem } from '../lib/partLineItems'
+import { activePartLines, emptyPartLine, sumPartLines } from '../lib/partLineItems'
+import { PartLineItemsFields } from './PartLineItemsFields'
 
 export type PricingBreakdownValues = {
   partsCost: string
   labourCost: string
   otherFees: string
+  partLineItems: PartLineItem[]
 }
 
 export function pricingTotal(values: PricingBreakdownValues): number {
-  const parts = parseFloat(values.partsCost) || 0
+  const parts =
+    values.partLineItems?.length
+      ? sumPartLines(activePartLines(values.partLineItems))
+      : parseFloat(values.partsCost) || 0
   const labour = parseFloat(values.labourCost) || 0
   const other = parseFloat(values.otherFees) || 0
   return parts + labour + other
 }
+
+export const defaultPricingBreakdown = (): PricingBreakdownValues => ({
+  partsCost: '',
+  labourCost: '',
+  otherFees: '',
+  partLineItems: [emptyPartLine()],
+})
 
 export type PricingBaseline = {
   partsNaira: number
@@ -24,6 +38,7 @@ export type PricingBaseline = {
 type Props = {
   values: PricingBreakdownValues
   onChange: (values: PricingBreakdownValues) => void
+  onPartsTotalChange?: (totalNaira: number) => void
   compact?: boolean
   /** Shown as hints so the mechanic can keep or change each line */
   baseline?: PricingBaseline | null
@@ -38,11 +53,9 @@ function baselineHint(
   return `Previous ${field === 'partsNaira' ? 'parts' : field === 'labourNaira' ? 'labour' : 'other'}: ₦${Number(n).toLocaleString()}`
 }
 
-export function PricingBreakdownFields({ values, onChange, compact, baseline }: Props) {
+export function PricingBreakdownFields({ values, onChange, onPartsTotalChange, compact, baseline }: Props) {
   const total = pricingTotal(values)
-  const parts = parseFloat(values.partsCost) || 0
   const labour = parseFloat(values.labourCost) || 0
-  const other = parseFloat(values.otherFees) || 0
   const labourMissing = total > 0 && isLabourMissing(labour)
   const fieldClass = compact
     ? 'w-24 px-2 py-1.5 border border-slate-200 rounded-lg text-sm'
@@ -61,22 +74,15 @@ export function PricingBreakdownFields({ values, onChange, compact, baseline }: 
           Labour is required (platform fee applies to labour only). Add parts and other fees if needed.
         </p>
       )}
-      <div className={compact ? 'flex flex-wrap gap-3 items-end' : 'grid sm:grid-cols-3 gap-3'}>
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Parts / materials (₦)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={values.partsCost}
-            onChange={(e) => onChange({ ...values, partsCost: e.target.value })}
-            placeholder={baseline ? String(baseline.partsNaira) : '0'}
-            className={fieldClass}
-          />
-          {baselineHint('partsNaira', baseline) ? (
-            <p className="text-xs text-slate-500 mt-1">{baselineHint('partsNaira', baseline)}</p>
-          ) : null}
-        </div>
+      <PartLineItemsFields
+        items={values.partLineItems}
+        onChange={(partLineItems) => onChange({ ...values, partLineItems })}
+        onPartsTotalChange={(n) => {
+          onChange({ ...values, partsCost: String(n) })
+          onPartsTotalChange?.(n)
+        }}
+      />
+      <div className={compact ? 'flex flex-wrap gap-3 items-end' : 'grid sm:grid-cols-2 gap-3'}>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">
             Labour / workmanship (₦) <span className="text-red-600">*</span>

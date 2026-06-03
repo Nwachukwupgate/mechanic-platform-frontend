@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { adminAPI } from '../../services/adminApi'
 import { getApiErrorMessage } from '../../services/api'
 import { fmtNairaMinor } from '../../lib/adminFormat'
-import { AdminPageHeader, AdminSection, AdminBadge } from '../../components/admin/AdminUi'
+import { AdminPageHeader, AdminSection } from '../../components/admin/AdminUi'
 
 export default function AdminPayouts() {
   const [list, setList] = useState<any[]>([])

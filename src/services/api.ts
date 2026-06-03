@@ -244,7 +244,13 @@ export const bookingsAPI = {
     api.put(`/bookings/${id}/cost`, { cost }),
   upsertInvoice: (
     id: string,
-    data: { partsCost: number; labourCost: number; otherFees?: number; notes?: string },
+    data: {
+      partsCost?: number
+      labourCost: number
+      otherFees?: number
+      partsLineItems?: { name: string; amountNaira: number; note?: string }[]
+      notes?: string
+    },
   ) => api.put(`/bookings/${id}/invoice`, data),
   submitInvoice: (id: string) => api.put(`/bookings/${id}/invoice/submit`),
   acceptInvoice: (id: string) => api.put(`/bookings/${id}/invoice/accept`),
@@ -261,6 +267,7 @@ export const bookingsAPI = {
       partsCost?: number
       labourCost?: number
       otherFees?: number
+      partsLineItems?: { name: string; amountNaira: number; note?: string }[]
       message?: string
       quoteType?: 'STANDARD' | 'INSPECTION'
     },
@@ -268,7 +275,13 @@ export const bookingsAPI = {
   updateQuote: (
     bookingId: string,
     quoteId: string,
-    data: { proposedPrice?: number; partsCost?: number; labourCost?: number; otherFees?: number },
+    data: {
+      proposedPrice?: number
+      partsCost?: number
+      labourCost?: number
+      otherFees?: number
+      partsLineItems?: { name: string; amountNaira: number; note?: string }[]
+    },
   ) => api.put(`/bookings/${bookingId}/quotes/${quoteId}`, data),
   withdrawQuote: (bookingId: string, quoteId: string) =>
     api.put(`/bookings/${bookingId}/quotes/${quoteId}/withdraw`),

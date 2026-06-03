@@ -462,6 +462,8 @@ export default function BookingDetail() {
     breakdownTotalNaira != null
       ? {
           partsNaira: Number(invForBreakdown?.partsNaira ?? summaryForBreakdown?.partsNaira ?? 0),
+          partsLineItems:
+            invForBreakdown?.partsLineItems ?? summaryForBreakdown?.partsLineItems ?? undefined,
           labourNaira: Number(invForBreakdown?.labourNaira ?? summaryForBreakdown?.labourNaira ?? 0),
           otherFeesNaira: Number(invForBreakdown?.otherFeesNaira ?? summaryForBreakdown?.otherFeesNaira ?? 0),
           totalNaira: Number(breakdownTotalNaira),

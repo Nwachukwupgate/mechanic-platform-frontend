@@ -64,23 +64,10 @@ export default function MechanicWallet() {
     loadData()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner variant="logo" size="lg" />
-      </div>
-    )
-  }
-
   const balance = summary?.balance ?? {}
-  const pendingFeeCheckouts = summary?.pendingPlatformFeeCheckouts ?? []
-  const pendingCheckoutMinor = Number(balance.pendingPlatformFeeCheckoutMinor ?? 0)
-  const grossWithdrawableMinor = Number(balance.availableToWithdrawMinor ?? balance.balanceMinor ?? 0)
-  const dueMinor = Number(balance.unpaidPlatformFeeMinor ?? 0)
-  const autoSettledMinor = Math.max(0, Number(balance.totalAutoFeeSettledMinor ?? 0))
-  const netMinor = Number(balance.netMinor ?? grossWithdrawableMinor - dueMinor)
-  const canStartFeeCheckout = pendingFeeCheckouts.length === 0
-  const recent = summary?.recentTransactions ?? []
+  const grossWithdrawableMinor = Number(
+    balance.availableToWithdrawMinor ?? balance.balanceMinor ?? 0,
+  )
   const availableToWithdrawMinor = useMemo(() => {
     if (Number.isFinite(grossWithdrawableMinor)) return grossWithdrawableMinor
     return 0
@@ -110,6 +97,22 @@ export default function MechanicWallet() {
         setSearchParams({}, { replace: true })
       })
   }, [searchParams, setSearchParams])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner variant="logo" size="lg" />
+      </div>
+    )
+  }
+
+  const pendingFeeCheckouts = summary?.pendingPlatformFeeCheckouts ?? []
+  const pendingCheckoutMinor = Number(balance.pendingPlatformFeeCheckoutMinor ?? 0)
+  const dueMinor = Number(balance.unpaidPlatformFeeMinor ?? 0)
+  const autoSettledMinor = Math.max(0, Number(balance.totalAutoFeeSettledMinor ?? 0))
+  const netMinor = Number(balance.netMinor ?? grossWithdrawableMinor - dueMinor)
+  const canStartFeeCheckout = pendingFeeCheckouts.length === 0
+  const recent = summary?.recentTransactions ?? []
 
   return (
     <div>

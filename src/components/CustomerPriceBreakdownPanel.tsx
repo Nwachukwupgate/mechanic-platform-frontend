@@ -2,11 +2,18 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { getBreakdownDisplay } from '../lib/priceBreakdownDisplay'
 
+export type PartLineItemView = {
+  name: string
+  amountNaira: number
+  note?: string
+}
+
 export type PriceBreakdownLines = {
   partsNaira: number
   labourNaira: number
   otherFeesNaira: number
   totalNaira: number
+  partsLineItems?: PartLineItemView[]
   inspectionPaidNaira?: number
   balanceDueNaira?: number
   previouslyAgreedNaira?: number
@@ -21,6 +28,7 @@ export function quoteToPriceBreakdownLines(quote: {
   partsNaira?: number | null
   labourNaira?: number | null
   otherFeesNaira?: number | null
+  partsLineItems?: PartLineItemView[] | null
 }): PriceBreakdownLines | null {
   const total = Number(quote.customerTotalNaira ?? quote.proposedPrice ?? 0)
   if (!total || total <= 0) return null
@@ -41,6 +49,7 @@ export function quoteToPriceBreakdownLines(quote: {
     otherFeesNaira: Number(quote.otherFeesNaira ?? 0),
     totalNaira: total,
     totalLabel: 'Quote total',
+    partsLineItems: quote.partsLineItems ?? undefined,
   }
 }
 
