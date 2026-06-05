@@ -313,6 +313,14 @@ export default function MechanicBookingDetail() {
   const hasLocation = booking.locationLat != null && booking.locationLng != null
   const showCustomerPhone = canShowBookingContactPhone(booking)
   const customerPhoneNumber = showCustomerPhone ? customerPhone(booking.user) : undefined
+  const contactLockedHint =
+    !customerPhoneNumber && booking.mechanicId === currentUser?.id
+      ? isInspectionJob && !booking.inspectionPaidAt
+        ? 'Customer phone unlocks after they pay the inspection fee.'
+        : status === 'REQUESTED' || !booking.acceptedQuoteId
+          ? 'Customer phone unlocks after they accept your quote.'
+          : null
+      : null
   const canStartWork =
     status === 'ACCEPTED' && (!isInspectionJob || Boolean(booking.inspectionPaidAt))
 
@@ -346,6 +354,8 @@ export default function MechanicBookingDetail() {
                 >
                   Call customer
                 </a>
+              ) : contactLockedHint ? (
+                <span className="text-xs text-slate-500">{contactLockedHint}</span>
               ) : null}
             </div>
             {booking.description && (

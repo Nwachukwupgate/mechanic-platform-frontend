@@ -15,7 +15,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import Avatar from '../../components/Avatar'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { SectionLabel } from '../../components/SectionLabel'
-import { customerPhone } from '../../lib/bookingContact'
+import { canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
 
 const STATUS_BADGE: Record<string, string> = {
   REQUESTED: 'bg-amber-100 text-amber-800',
@@ -195,7 +195,9 @@ export default function MechanicDashboard() {
           <ul className="space-y-2 list-none p-0 m-0">
             {openRequests.map((req: any) => {
               const customerName = [req.user?.firstName, req.user?.lastName].filter(Boolean).join(' ') || 'Customer'
-              const customerPhoneNumber = customerPhone(req.user)
+              const customerPhoneNumber = canShowBookingContactPhone(req)
+                ? customerPhone(req.user)
+                : undefined
               return (
                 <li key={req.id}>
                   <Link
