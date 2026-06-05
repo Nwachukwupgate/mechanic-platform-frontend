@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import RepairTypeIcon from '../../components/RepairTypeIcon'
 import { userBookingGuidance, quoteStatusLabel } from '../../lib/bookingStatusCopy'
 import { isQuoteInspection, quoteTypeLabel } from '../../lib/jobPostingValidation'
-import { canShowBookingContactPhone, mechanicPhone } from '../../lib/bookingContact'
+import { bookingContactLockedHint, canShowBookingContactPhone, mechanicPhone } from '../../lib/bookingContact'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import {
   CustomerPriceBreakdownPanel,
@@ -271,6 +271,7 @@ export default function BookingDetail() {
   const photoUrls: string[] = Array.isArray(booking?.photoUrls) ? booking.photoUrls : []
   const showMechanicPhone = booking ? canShowBookingContactPhone(booking) : false
   const mechanicPhoneNumber = showMechanicPhone ? mechanicPhone(booking?.mechanic) : undefined
+  const mechanicContactHint = booking?.mechanic ? bookingContactLockedHint(booking, 'customer') : null
 
   const handlePhotoFiles = async (files: FileList | null) => {
     if (!id || !files?.length) return
@@ -517,6 +518,8 @@ export default function BookingDetail() {
                   >
                     Call mechanic
                   </a>
+                ) : mechanicContactHint ? (
+                  <span className="text-xs text-slate-500">{mechanicContactHint}</span>
                 ) : null}
               </div>
             )}

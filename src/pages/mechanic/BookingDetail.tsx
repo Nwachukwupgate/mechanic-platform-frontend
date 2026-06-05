@@ -16,7 +16,7 @@ import {
 } from '../../components/PricingBreakdownFields'
 import { PricingBreakdownSummary } from '../../components/PricingBreakdownSummary'
 import { MechanicCostStatusBanner } from '../../components/MechanicCostStatusBanner'
-import { canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
+import { bookingContactLockedHint, canShowBookingContactPhone, customerPhone } from '../../lib/bookingContact'
 import { isLabourMissing, LABOUR_REQUIRED_MESSAGE } from '../../lib/priceBreakdownDisplay'
 import { defaultPricingBreakdown } from '../../components/PricingBreakdownFields'
 import { activePartLines, partLinesFromQuote, partsPayload } from '../../lib/partLineItems'
@@ -315,11 +315,7 @@ export default function MechanicBookingDetail() {
   const customerPhoneNumber = showCustomerPhone ? customerPhone(booking.user) : undefined
   const contactLockedHint =
     !customerPhoneNumber && booking.mechanicId === currentUser?.id
-      ? isInspectionJob && !booking.inspectionPaidAt
-        ? 'Customer phone unlocks after they pay the inspection fee.'
-        : status === 'REQUESTED' || !booking.acceptedQuoteId
-          ? 'Customer phone unlocks after they accept your quote.'
-          : null
+      ? bookingContactLockedHint(booking, 'mechanic')
       : null
   const canStartWork =
     status === 'ACCEPTED' && (!isInspectionJob || Boolean(booking.inspectionPaidAt))
